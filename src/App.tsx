@@ -195,10 +195,10 @@ export default function App() {
                 <div className="w-full max-w-xl mx-auto px-6 text-center space-y-7">
                   {/* Hero Ambient image element inside floated romantic card */}
                   <div className="relative w-full max-w-[325px] aspect-square mx-auto rounded-[48px] overflow-hidden shadow-lg animate-float mt-5 border-4 border-white">
-                    {/* Golden sunset couple artwork */}
+                    {/* Couple selfie photo */}
                     <img 
-                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuD25_qEj_TYXx3C5il1Xn_ZMxYv8nHPD4OLbqb8EagxCgW3nEPdubmLO98o3kmj2iTy1qKK4MUOToQObxuqnyI1HvplV8rTaj06EQD5Z3iwLTUIruYwld-FOHCWHN191JyxBgkNZSlmffQPyJBhEdUY2tfGZIyi8VKSCLs-b9dTBSCbN5Q-pKGvos8DswqkYYO0KH8IMUWcAL7mDIqDvPtAN_JqvBZe0oAdv59kzKQg__JTNWNw4FC82mhkrAawSw7XbIPQkqIM9N49" 
-                      alt="Casal de Mãos Dadas no Pôr do Sol" 
+                      src={profile.profilePhoto} 
+                      alt="Foto do Casal" 
                       className="w-full h-full object-cover select-none"
                     />
                     {/* Shadow overlay gradient */}

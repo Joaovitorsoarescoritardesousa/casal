@@ -1,10 +1,11 @@
 import { DiaryEntry, DateOption, CoupleProfile } from './types';
+import couplePhoto from './assets/images/couple_photo_1780953004975.png';
 
 export const INITIAL_PROFILE: CoupleProfile = {
   partner1: "João",
   partner2: "Maria",
   anniversaryDate: "2024-06-12",
-  profilePhoto: "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?auto=format&fit=crop&q=80&w=600",
+  profilePhoto: couplePhoto,
 };
 
 export const MOODS_LIST = [
@@ -122,7 +123,7 @@ export const INITIAL_DIARY_ENTRIES: DiaryEntry[] = [
       "Pela paciência que você teve comigo hoje cedo.",
       "Por me fazer rir até a barriga doer no almoço."
     ],
-    photoUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuDWjzz0fCmyZ19n906j4yALJ7bp0IaUQIUXKqwDlZu3dgyJtu9dcVd2CafjQxmY8uZgD7Pz4wq5uHmvY-p0bedQgZX68txJJtEp1u_E4mDkjgkODme-bsOz7Sih5w1t90VVqsS6h1Q_4yyJDJe9zIoRA2O8AxyxsuBKdIvWInaxCU9CiIXhiRUDajPNZCEwKW2DGfxuFgyAwRToKCfiohZ4pfHWhBCLfUuU3pjqGg3pIbCWpsbsbevkNmMCc5TuuAppZpQabfcGBQNz",
+    photoUrl: couplePhoto,
     photoCaption: "Nosso momento no pôr do sol"
   },
   {

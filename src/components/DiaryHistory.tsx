@@ -4,6 +4,8 @@ import {
   Trash2, FileText, ArrowLeft, Search, Filter, Sparkles, CheckCircle2,
   UtensilsCrossed, CalendarDays, Zap, Shield, HelpCircle, Flame, Dumbbell, DollarSign
 } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 import { DiaryEntry } from '../types';
 
 interface DiaryHistoryProps {
@@ -16,6 +18,7 @@ export default function DiaryHistory({ entries, onDeleteEntry, onBackToHome }: D
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMoodFilter, setSelectedMoodFilter] = useState<string>('all');
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   // Find selected entry
   const selectedEntry = entries.find(e => e.id === selectedEntryId);
@@ -97,9 +100,72 @@ Cultivar nossa sintonização e riso mútuo a cada detalhe simples é minha part
     window.open(whatsappUrl, '_blank');
   };
 
-  // Trigger browser print for easy PDF save
-  const handlePrintPDF = () => {
-    window.print();
+  // Trigger browser print or direct instant high quality client PDF download
+  const handlePrintPDF = async () => {
+    if (!selectedEntry || isGeneratingPdf) return;
+
+    const element = document.getElementById('diary-detail-capture');
+    if (!element) {
+      window.print();
+      return;
+    }
+
+    setIsGeneratingPdf(true);
+
+    try {
+      // Small timeout to let any active hover or transitions finalize
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      const canvas = await html2canvas(element, {
+        scale: 2.2, // Excellent presentation quality
+        useCORS: true, // Allow external pictures to render correctly
+        allowTaint: true,
+        logging: false,
+        backgroundColor: '#f9fafb' // Matches layout styling background
+      });
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'px',
+        format: 'a4'
+      });
+
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      
+      const imgWidth = pdfWidth;
+      const imgHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      // Fit content beautifully onto standard PDF document page height(s)
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pdfHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pdfHeight;
+      }
+
+      // Safe clean filename based on dates
+      const cleanDate = selectedEntry.formattedDate
+        .toLowerCase()
+        .replace(/[^a-z0-0]/g, '_')
+        .substring(0, 35);
+      
+      pdf.save(`diario_do_casal_${cleanDate}.pdf`);
+    } catch (err) {
+      console.error('Falha ao gerar o PDF direto, usando print nativo:', err);
+      // Absolute premium fallback to native print if anything gets blocked
+      window.print();
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   if (selectedEntry) {
@@ -138,18 +204,20 @@ Cultivar nossa sintonização e riso mútuo a cada detalhe simples é minha part
           </button>
         </div>
 
-        {/* Header Title Section */}
-        <section className="mb-6 text-center print:mt-10">
-          <h2 className="text-2xl font-black text-gray-800 font-sans tracking-tight mb-2">
-            Resumo do Nosso Dia
-          </h2>
-          <div className="text-xs font-extrabold text-pink-700 bg-pink-100/70 border border-pink-200/50 px-4 py-1.5 rounded-full inline-block">
-            {selectedEntry.formattedDate} • {selectedEntry.formattedTime}
-          </div>
-        </section>
+        {/* Capture Container for instant high quality PDF */}
+        <div id="diary-detail-capture" className="bg-gray-50/50 p-4 rounded-[32px] border border-gray-100/40 space-y-4">
+          {/* Header Title Section */}
+          <section className="mb-6 text-center print:mt-10">
+            <h2 className="text-2xl font-black text-gray-800 font-sans tracking-tight mb-2">
+              Resumo do Nosso Dia
+            </h2>
+            <div className="text-xs font-extrabold text-pink-700 bg-pink-100/70 border border-pink-200/50 px-4 py-1.5 rounded-full inline-block">
+              {selectedEntry.formattedDate} • {selectedEntry.formattedTime}
+            </div>
+          </section>
 
-        {/* Bento Grid layout representing all 9 custom categories */}
-        <div className="space-y-4">
+          {/* Bento Grid layout representing all 9 custom categories */}
+          <div className="space-y-4">
           
           {/* Card 1: Emoção & Bateria */}
           <div className="bg-white p-5 rounded-[24px] border border-pink-50 hover:shadow-xs transition-shadow flex items-center gap-4.5 shadow-xs">
@@ -310,17 +378,19 @@ Cultivar nossa sintonização e riso mútuo a cada detalhe simples é minha part
             </div>
           </div>
         </div>
+      </div>
 
         {/* BOTTOM STICKY ACTION BAR */}
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/85 backdrop-blur-xl border-t border-pink-50/80 shadow-md z-40 no-print">
           <div className="max-w-xl mx-auto flex flex-col gap-2">
             <button 
               onClick={handlePrintPDF}
-              className="w-full h-12 bg-pink-600 hover:bg-pink-700 text-white rounded-full font-bold text-xs tracking-wider flex items-center justify-center gap-2 transition-all active:scale-95 shadow-md shadow-pink-100"
+              disabled={isGeneratingPdf}
+              className={`w-full h-12 ${isGeneratingPdf ? 'bg-pink-400' : 'bg-pink-600 hover:bg-pink-700'} text-white rounded-full font-bold text-xs tracking-wider flex items-center justify-center gap-2 transition-all active:scale-95 shadow-md shadow-pink-100 disabled:opacity-75 disabled:cursor-wait`}
               id="generate-pdf-btn"
             >
-              <FileText className="w-4 h-4" />
-              <span>Gerar Diário do Dia (PDF)</span>
+              <FileText className={`w-4 h-4 ${isGeneratingPdf ? 'animate-pulse' : ''}`} />
+              <span>{isGeneratingPdf ? 'Gerando PDF instantâneo...' : 'Gerar Diário do Dia (PDF)'}</span>
             </button>
 
             <div className="flex gap-2">
