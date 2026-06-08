@@ -170,229 +170,342 @@ Cultivar nossa sintonização e riso mútuo a cada detalhe simples é minha part
     return (
       <div className="w-full max-w-xl mx-auto px-4 pt-4 pb-48 animate-fade-in print:pb-0">
         {/* EXCLUSIVE HIGH RESOLUTION PRINT TEMPLATE (HIDDEN OFF-SCREEN) */}
-        <div 
-          id="diary-detail-pdf-template" 
-          style={{
-            position: 'absolute',
-            left: '-9999px',
-            top: '-9999px',
-            width: '794px',
-            height: '1123px',
-            backgroundColor: '#ffffff',
-            boxSizing: 'border-box',
-            overflow: 'hidden'
-          }}
-          className="p-6 font-sans relative text-gray-800 border-[12px] border-[#ffecef]"
-        >
-          {/* Heart decorative watermark in background */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-[0.012] pointer-events-none select-none">
-            <Heart className="w-[420px] h-[420px] text-pink-600 fill-pink-600" />
-          </div>
+        {(() => {
+          // Compute active selected categories for A4 PDF dynamically
+          const activeCategories = [];
 
-          <div className="relative border-2 border-pink-100/30 p-5 rounded-2xl w-full h-full flex flex-col justify-between font-sans">
-            {/* Header section (Very compact) */}
-            <div className="text-center pb-3 border-b border-pink-100/30">
-              <div className="flex items-center justify-center gap-1.5 text-pink-600 font-extrabold text-[9px] uppercase tracking-widest mb-1 bg-pink-50/40 px-2.5 py-0.5 rounded-full w-fit mx-auto">
-                <Sparkles className="w-3 h-3 text-pink-500 fill-pink-500/10" />
-                <span>Nossa Página de Conexão</span>
-                <Sparkles className="w-3 h-3 text-pink-500 fill-pink-500/10" />
-              </div>
-              <h1 className="text-2xl font-black tracking-tight text-gray-800">
-                Diário do Casal
-              </h1>
-              <p className="text-[10px] font-bold text-rose-500 mt-0.5 italic">
-                {profile.partner1} ❤️ {profile.partner2}
-              </p>
-              
-              <div className="mt-1.5 inline-flex items-center gap-1.5 bg-pink-50/50 border border-pink-100/30 px-3 py-1 rounded-full text-[10px] font-bold text-pink-700 font-sans">
-                <span>📅 {selectedEntry.formattedDate} às {selectedEntry.formattedTime}</span>
-              </div>
-            </div>
-
-            {/* Quote of the Day (Very compact) */}
-            <div className="py-1.5 text-center text-[10px] text-gray-400 italic font-sans animate-fade-in">
-              "Cultivar nossa sintonização e riso mútuo a cada detalhe simples é nossa parte favorita de nós."
-            </div>
-
-            {/* Bento Grid (Fits nicely in 1 page A4 size) */}
-            <div className="grid grid-cols-12 gap-4 flex-1 my-2 overflow-hidden items-stretch">
-              
-              {/* Left Column (Sintonia & Polaroid Photo & Extras) */}
-              <div className="col-span-6 flex flex-col gap-3 h-full justify-between font-sans">
-                
-                {/* Mood & Energy */}
-                <div className="bg-white p-3 rounded-[16px] border border-pink-50/60 shadow-[0_1px_8px_rgba(244,63,94,0.01)] font-sans">
-                  <span className="text-[8px] font-black uppercase text-pink-500 tracking-wider block mb-1 font-sans">
-                    💓 Sintonia & Sentimentos
-                  </span>
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 bg-pink-50 rounded-xl flex items-center justify-center text-xl flex-shrink-0">
-                      {getMoodEmoji(selectedEntry.moods[0])}
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-gray-800 leading-tight block">
-                        {selectedEntry.moods.join(' • ')}
-                      </h4>
-                      <p className="text-[9px] font-bold text-gray-500 mt-0.5 flex items-center gap-1">
-                        <span className="text-[8.5px] bg-pink-100 px-1 py-0.2 rounded text-pink-700 font-extrabold">{getEnergyEmoji(selectedEntry.energy)}</span>
-                        <span>Bateria/Disposição: {selectedEntry.energy}</span>
-                      </p>
-                    </div>
+          if (selectedEntry.moods && selectedEntry.moods.length > 0) {
+            activeCategories.push({
+              id: 'moods',
+              title: '💓 Sintonia & Sentimentos',
+              bgColor: 'bg-white',
+              borderColor: 'border-blue-100/70',
+              content: (
+                <div className="flex items-center gap-2 font-sans">
+                  <div className="w-8 h-8 rounded-lg bg-pink-50 flex items-center justify-center text-lg flex-shrink-0">
+                    {getMoodEmoji(selectedEntry.moods[0])}
+                  </div>
+                  <div>
+                    <p className="text-[9.5px] font-bold text-gray-800 leading-tight">
+                      {selectedEntry.moods.join(' • ')}
+                    </p>
+                    <p className="text-[7.5px] font-medium text-gray-400 mt-0.5">Sintonia expressada hoje</p>
                   </div>
                 </div>
+              )
+            });
+          }
 
-                {/* Polaroid Photo Box */}
-                <div className="bg-white p-3 rounded-[16px] border border-pink-50/60 shadow-[0_1px_8px_rgba(244,63,94,0.01)] flex flex-col items-center flex-grow justify-center font-sans">
-                  <span className="text-[8px] font-black uppercase text-pink-500 tracking-wider mb-1.5 block font-sans">
-                    📸 Registro Fotográfico do Dia
-                  </span>
-                  <div className="w-full h-36 rounded-lg overflow-hidden border border-gray-100 relative mb-1.5">
-                    <img 
-                      referrerPolicy="no-referrer"
-                      src={selectedEntry.photoUrl} 
-                      alt="Momento do casal" 
-                      className="w-full h-full object-cover" 
-                    />
+          if (selectedEntry.energy) {
+            activeCategories.push({
+              id: 'energy',
+              title: '⚡ Bateria & Disposição',
+              bgColor: 'bg-blue-50/15',
+              borderColor: 'border-blue-100/50',
+              content: (
+                <div className="flex items-center gap-2 font-sans">
+                  <div className="w-8 h-8 rounded-lg bg-blue-50/80 flex items-center justify-center text-lg flex-shrink-0">
+                    {getEnergyEmoji(selectedEntry.energy)}
                   </div>
-                  <p className="text-[9px] font-extrabold text-pink-700 tracking-tight leading-normal font-sans italic text-center max-w-[280px]">
-                    "{selectedEntry.photoCaption}"
-                  </p>
+                  <div>
+                    <p className="text-[9.5px] font-bold text-gray-800 leading-tight">
+                      Bateria: {selectedEntry.energy}
+                    </p>
+                    <p className="text-[7.5px] font-medium text-gray-400 mt-0.5">Disposição e humor do casal</p>
+                  </div>
                 </div>
+              )
+            });
+          }
 
-                {/* Comentários extra details */}
-                {(selectedEntry.highlights.dinner?.description || selectedEntry.highlights.movie?.description) && (
-                  <div className="bg-[#faf8f5]/60 p-3 rounded-[16px] border border-gray-100/70 space-y-1 my-0.5 font-sans">
-                    <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider block font-sans">
-                      📝 Notas & Comentários do Dia
+          if (selectedEntry.whereToEat) {
+            activeCategories.push({
+              id: 'whereToEat',
+              title: '📍 O Ponto do Rolê',
+              bgColor: 'bg-white',
+              borderColor: 'border-gray-200/60',
+              content: (
+                <div className="flex items-start gap-1 font-sans">
+                  <span className="text-[11px] shrink-0">📍</span>
+                  <div>
+                    <p className="text-[9.5px] font-bold text-gray-800 leading-tight">{whereToEat}</p>
+                    <p className="text-[7.5px] font-medium text-gray-400 mt-0.5">Local para alimentar a conexão</p>
+                  </div>
+                </div>
+              )
+            });
+          }
+
+          if (selectedEntry.wantToEat && selectedEntry.wantToEat.length > 0) {
+            activeCategories.push({
+              id: 'wantToEat',
+              title: '🍔 Desejos de Comer',
+              bgColor: 'bg-white',
+              borderColor: 'border-gray-200/60',
+              content: (
+                <div className="flex flex-wrap gap-0.5 font-sans">
+                  {foodItems.map((food, i) => (
+                    <span key={i} className="text-[7.5px] font-bold text-gray-700 bg-gray-50 border border-gray-100 px-1 py-0.2 rounded">
+                      {food}
                     </span>
-                    {selectedEntry.highlights.dinner?.description && (
-                      <p className="text-[9px] text-gray-650 italic leading-snug font-sans">
-                        "🍽️ {selectedEntry.highlights.dinner.description}"
-                      </p>
-                    )}
-                    {selectedEntry.highlights.movie?.description && (
-                      <p className="text-[9px] text-gray-655 italic leading-snug pt-0.5 border-t border-gray-100/40 font-sans">
-                        "🍿 {selectedEntry.highlights.movie.description}"
-                      </p>
-                    )}
+                  ))}
+                </div>
+              )
+            });
+          }
+
+          if (selectedEntry.dessert && selectedEntry.dessert.length > 0) {
+            activeCategories.push({
+              id: 'dessert',
+              title: '🍦 Sobremesas',
+              bgColor: 'bg-white',
+              borderColor: 'border-gray-200/60',
+              content: (
+                <div className="flex flex-wrap gap-0.5 font-sans">
+                  {dessertItems.map((sweet, i) => (
+                    <span key={i} className="text-[7.5px] font-bold text-gray-700 bg-gray-50 border border-gray-100 px-1 py-0.2 rounded">
+                      {sweet}
+                    </span>
+                  ))}
+                </div>
+              )
+            });
+          }
+
+          if (selectedEntry.exercise && selectedEntry.exercise.length > 0) {
+            activeCategories.push({
+              id: 'exercise',
+              title: '👟 Exercício do Casal',
+              bgColor: 'bg-blue-50/15',
+              borderColor: 'border-blue-100/50',
+              content: (
+                <div className="flex flex-wrap gap-0.5 font-sans">
+                  {exercisesList.map((ex, i) => (
+                    <span key={i} className="text-[7.5px] font-bold text-pink-600 bg-pink-50/40 px-1 py-0.2 rounded">
+                      {ex}
+                    </span>
+                  ))}
+                </div>
+              )
+            });
+          }
+
+          if (selectedEntry.watchInHome && selectedEntry.watchInHome.trim() !== '') {
+            activeCategories.push({
+              id: 'watchInHome',
+              title: '🍿 Cinema em Casa',
+              bgColor: 'bg-white',
+              borderColor: 'border-gray-200/60',
+              content: (
+                <div className="flex items-start gap-1 font-sans">
+                  <span className="text-[11px] shrink-0">🍿</span>
+                  <div>
+                    <p className="text-[9.5px] font-bold text-gray-800 leading-tight">{selectedEntry.watchInHome}</p>
+                    <p className="text-[7.5px] font-medium text-gray-400 mt-0.5">O que assistir juntos</p>
                   </div>
-                )}
-                <div className="bg-white p-3 rounded-[16px] border border-pink-50/60 shadow-[0_1px_8px_rgba(244,63,94,0.01)] space-y-2 font-sans">
-                  <span className="text-[8px] font-black uppercase text-pink-500 tracking-wider block">
-                    🤝 Combinados & Acordos do Casal
-                  </span>
-                  
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <span className="text-[8px] font-bold text-gray-400 block uppercase leading-none">👟 Exercício</span>
-                      <p className="text-[9px] font-bold text-gray-700 mt-0.5 leading-tight">{exercisesList[0]}</p>
+                </div>
+              )
+            });
+          }
+
+          if (selectedEntry.whoPays) {
+            activeCategories.push({
+              id: 'whoPays',
+              title: '💳 Acordo da Conta',
+              bgColor: 'bg-white',
+              borderColor: 'border-gray-150',
+              content: (
+                <div className="flex items-center gap-1 font-sans">
+                  <span className="text-[11px] shrink-0">💳</span>
+                  <div>
+                    <p className="text-[9.5px] font-bold text-gray-800 leading-tight">{whoPaysPrice}</p>
+                    <p className="text-[7.5px] font-medium text-gray-400 mt-0.5">Quem assume a rodada hoje</p>
+                  </div>
+                </div>
+              )
+            });
+          }
+
+          if (selectedEntry.loveMoment) {
+            activeCategories.push({
+              id: 'loveMoment',
+              title: '💝 Regra Clara do Amor',
+              bgColor: 'bg-blue-50/15',
+              borderColor: 'border-blue-100/50',
+              content: (
+                <div className="flex items-center gap-1 font-sans">
+                  <span className="text-[11px] shrink-0">💖</span>
+                  <div>
+                    <p className="text-[9.5px] font-bold text-rose-500 leading-tight">{loveRule}</p>
+                    <p className="text-[7.5px] font-medium text-gray-400 mt-0.2">Regra ou compromisso para hoje</p>
+                  </div>
+                </div>
+              )
+            });
+          }
+
+          if (selectedEntry.highlights?.dinner?.description && selectedEntry.highlights.dinner.description.trim() !== '') {
+            activeCategories.push({
+              id: 'dinnerComment',
+              title: '📝 Notas Gastronômicas',
+              bgColor: 'bg-gray-50/60',
+              borderColor: 'border-gray-150',
+              content: (
+                <p className="text-[8px] text-gray-600 italic leading-snug font-sans max-h-12 overflow-hidden">
+                  "🍽️ {selectedEntry.highlights.dinner.description}"
+                </p>
+              )
+            });
+          }
+
+          if (selectedEntry.highlights?.movie?.description && selectedEntry.highlights.movie.description.trim() !== '') {
+            activeCategories.push({
+              id: 'movieComment',
+              title: '🍿 Notas de Filme/Lazer',
+              bgColor: 'bg-gray-50/60',
+              borderColor: 'border-gray-150',
+              content: (
+                <p className="text-[8px] text-gray-600 italic leading-snug font-sans max-h-12 overflow-hidden">
+                  "🍿 {selectedEntry.highlights.movie.description}"
+                </p>
+              )
+            });
+          }
+
+          return (
+            <div 
+              id="diary-detail-pdf-template" 
+              style={{
+                position: 'absolute',
+                left: '-9999px',
+                top: '-9999px',
+                width: '794px',
+                height: '1123px',
+                backgroundColor: '#ffffff',
+                boxSizing: 'border-box',
+                overflow: 'hidden'
+              }}
+              className="p-6 font-sans relative text-gray-800 border-[10px] border-blue-50/30"
+            >
+              {/* Heart decorative watermark in background */}
+              <div className="absolute inset-0 flex items-center justify-center opacity-[0.012] pointer-events-none select-none">
+                <Heart className="w-[420px] h-[420px] text-pink-600 fill-pink-600" />
+              </div>
+
+              <div className="relative border border-gray-100 p-5 rounded-2xl w-full h-full flex flex-col justify-between font-sans bg-white shadow-3xs">
+                {/* Header section (Modern & Minimalist, with logo and generation date/time) */}
+                <div className="flex justify-between items-center pb-3 border-b border-gray-100/80">
+                  {/* Left part: Logo & App Title */}
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-pink-500 border border-pink-100 shadow-2xs">
+                      <Heart className="w-4 h-4 fill-pink-500 text-pink-500" />
                     </div>
-                    <div>
-                      <span className="text-[8px] font-bold text-gray-400 block uppercase leading-none">💳 Conta Pago Por</span>
-                      <p className="text-[9px] font-bold text-gray-700 mt-0.5 leading-tight">{whoPaysPrice}</p>
+                    <div className="text-left font-sans">
+                      <h1 className="text-base font-black tracking-tight text-gray-850">
+                        ❤️ Diário do Casal
+                      </h1>
+                      <p className="text-[8.5px] font-extrabold text-pink-500 uppercase tracking-widest mt-0.5">
+                        {profile.partner1} & {profile.partner2}
+                      </p>
                     </div>
                   </div>
 
-                  <div className="border-t border-gray-50 pt-1.5 flex items-center justify-between font-sans">
-                    <div>
-                      <span className="text-[8px] font-bold text-rose-500 block uppercase leading-none">💝 Momento Love</span>
-                      <p className="text-[9px] font-bold text-gray-805 mt-0.5">{loveRule}</p>
-                    </div>
-                    <span className="text-[7px] font-extrabold text-pink-600 bg-pink-50 px-1.5 py-0.2 rounded-full uppercase tracking-wider">Regra Clara</span>
+                  {/* Right part: PDF generation timestamp */}
+                  <div className="text-right flex flex-col font-mono text-[7.5px] text-gray-400">
+                    <span className="font-sans font-extrabold text-pink-600 text-[8px] uppercase tracking-wider mb-0.5">Página de Recordação</span>
+                    <span>Documento Oficial: {new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                    <span>Registro: {selectedEntry.formattedDate} às {selectedEntry.formattedTime}</span>
                   </div>
+                </div>
 
-                  {selectedEntry.watchInHome && (
-                    <div className="border-t border-gray-50 pt-1.5 flex items-start gap-1.5">
-                      <span className="text-xs">🍿</span>
+                {/* Quote of the Day (Very compact) */}
+                <div className="py-1 px-3 text-center text-[9px] text-gray-400 italic font-sans bg-gray-50/40 border border-gray-100/30 rounded-lg max-w-sm mx-auto">
+                  "Cultivar nossa sintonização e riso mútuo a cada detalhe simples é nossa parte favorita de nós."
+                </div>
+
+                {/* Grid with active items (compact cards of selected categories only) */}
+                <div className="grid grid-cols-2 gap-2 flex-grow my-2 items-stretch content-start">
+                  {activeCategories.map((cat) => (
+                    <div 
+                      key={cat.id} 
+                      className={`p-2.5 rounded-[12px] border ${cat.borderColor} ${cat.bgColor} shadow-2xs flex flex-col justify-between font-sans`}
+                    >
                       <div>
-                        <span className="text-[8px] font-bold text-gray-400 block uppercase leading-none">O que assistir</span>
-                        <p className="text-[9px] font-bold text-gray-700 mt-0.5 leading-tight">{selectedEntry.watchInHome}</p>
+                        <span className="text-[7.5px] font-black uppercase text-pink-600 tracking-wider block mb-1 font-sans">
+                          {cat.title}
+                        </span>
+                        <div className="font-sans mt-0.5 leading-relaxed">
+                          {cat.content}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Bottom Row: Gratitudes & Polaroid Photo */}
+                <div className="grid grid-cols-12 gap-2 mt-2 pt-2 border-t border-gray-50/80">
+                  {selectedEntry.gratitudes && selectedEntry.gratitudes.length > 0 && (
+                    <div className="col-span-6 p-2.5 bg-white border border-blue-50/85 rounded-[12px] shadow-2xs flex flex-col justify-between">
+                      <div>
+                        <span className="text-[7.5px] font-black uppercase text-pink-500 tracking-wider block mb-1.5 font-sans">
+                          💫 Sou imensamente grato(a) por...
+                        </span>
+                        <ul className="space-y-1 font-sans">
+                          {selectedEntry.gratitudes.slice(0, 3).map((grat, index) => (
+                            <li key={index} className="flex items-start gap-1 bg-[#fdfaf8]/60 p-1 rounded-lg border border-pink-100/10 font-sans">
+                              <span className="text-pink-500 text-[8px] font-black shrink-0 mt-0.5">❤️</span>
+                              <p className="text-[8px] font-semibold text-gray-700 leading-tight">
+                                {grat}
+                              </p>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedEntry.photoUrl && (
+                    <div className="col-span-6 p-2.5 bg-white border border-gray-200/60 rounded-[12px] shadow-2xs flex flex-col justify-between">
+                      <div>
+                        <span className="text-[7.5px] font-black uppercase text-pink-500 tracking-wider block mb-1.5 font-sans">
+                          📸 Registro Fotográfico
+                        </span>
+                        <div className="w-full h-20 rounded-lg overflow-hidden border border-gray-100 relative mb-1">
+                          <img 
+                            referrerPolicy="no-referrer"
+                            src={selectedEntry.photoUrl} 
+                            alt="Momento do casal" 
+                            className="w-full h-full object-cover" 
+                          />
+                        </div>
+                        {selectedEntry.photoCaption && (
+                          <p className="text-[7.5px] font-bold text-pink-600 tracking-tight leading-normal font-sans italic text-center truncate max-w-[280px]">
+                            "{selectedEntry.photoCaption}"
+                          </p>
+                        )}
                       </div>
                     </div>
                   )}
                 </div>
 
-              </div>
-
-              {/* Right Column (Gastronomia, Sabores & Gratidão) */}
-              <div className="col-span-6 flex flex-col gap-3 justify-between h-full font-sans">
-                
-                {/* Gastronomia: Ponto do Rolê e Desejos */}
-                <div className="bg-white p-3.5 rounded-[16px] border border-pink-50/60 shadow-[0_1px_8px_rgba(244,63,94,0.01)] space-y-2 font-sans">
-                  <span className="text-[8px] font-black uppercase text-pink-500 tracking-wider block">
-                    🍽️ Sabores & Gastronomia
-                  </span>
-                  
-                  <div className="flex items-start gap-2">
-                    <span className="text-sm">📍</span>
-                    <div>
-                      <span className="text-[8px] font-bold text-pink-600 block leading-none">O Ponto do Rolê</span>
-                      <p className="text-xs font-bold text-gray-800 leading-tight mt-0.5">{whereToEat}</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 border-t border-gray-50 pt-2 font-sans">
-                    <div>
-                      <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1">🍔 Desejo de Comer</span>
-                      <div className="flex flex-wrap gap-0.5">
-                        {foodItems.map((food, i) => (
-                          <span key={i} className="text-[8.5px] font-bold text-gray-700 bg-[#faf8f5] border border-gray-100 px-1.5 py-0.2 rounded font-sans">
-                            {food}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div>
-                      <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1">🍦 Sobremesa/Doce</span>
-                      <div className="flex flex-wrap gap-0.5 font-sans">
-                        {dessertItems.map((sweet, i) => (
-                          <span key={i} className="text-[8.5px] font-bold text-gray-700 bg-[#faf8f5] border border-gray-100 px-1.5 py-0.2 rounded font-sans">
-                            {sweet}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Gratitudes card (very clean list) */}
-                <div className="bg-white p-3.5 rounded-[16px] border border-pink-50/60 shadow-[0_1px_8px_rgba(244,63,94,0.01)] flex-grow flex flex-col justify-between font-sans">
-                  <div>
-                    <span className="text-[8px] font-black uppercase text-pink-500 tracking-wider block mb-1.5 font-sans">
-                      💫 Sou imensamente grato(a) por...
+                {/* Footer (Very compact with beautiful quotation) */}
+                <div className="pt-2 border-t border-gray-100 text-center flex flex-col items-center justify-center font-sans">
+                  <p className="text-[8.5px] font-bold text-gray-400 leading-none">
+                    "Cada dia ao seu lado é uma memória guardada para sempre no coração."
+                  </p>
+                  <div className="flex items-center gap-1 mt-1 font-sans">
+                    <Heart className="w-2 h-2 text-pink-400 fill-pink-400" />
+                    <span className="text-[7.5px] font-extrabold text-gray-500 uppercase tracking-widest font-sans">
+                      {profile.partner1} & {profile.partner2} • Diário do Casal
                     </span>
-                    <ul className="space-y-1.5 font-sans">
-                      {selectedEntry.gratitudes.map((grat, index) => (
-                        <li key={index} className="flex items-start gap-1 bg-[#fdfaf8]/60 p-1 rounded-lg border border-pink-100/10 font-sans">
-                          <span className="text-pink-500 text-[9px] font-black shrink-0 mt-0.5">❤️</span>
-                          <p className="text-[8.5px] font-semibold text-gray-750 leading-tight">
-                            {grat}
-                          </p>
-                        </li>
-                      ))}
-                    </ul>
+                    <Heart className="w-2 h-2 text-pink-400 fill-pink-400" />
                   </div>
                 </div>
 
               </div>
             </div>
-
-            {/* Footer section (Very compact) */}
-            <div className="pt-2 border-t border-pink-100/30 text-center flex flex-col items-center justify-center font-sans">
-              <p className="text-[9px] font-bold text-gray-400 leading-none">
-                "Cada dia ao seu lado é uma memória guardada para sempre no coração."
-              </p>
-              <div className="flex items-center gap-1 mt-1.5 font-sans">
-                <Heart className="w-2.5 h-2.5 text-pink-400 fill-pink-400" />
-                <span className="text-[8px] font-extrabold text-gray-500 uppercase tracking-widest font-sans">
-                  {profile.partner1} & {profile.partner2} • Diário do Casal
-                </span>
-                <Heart className="w-2.5 h-2.5 text-pink-400 fill-pink-400" />
-              </div>
-            </div>
-
-          </div>
-        </div>
+          );
+        })()}
 
         {/* Back and actions header */}
         <div className="flex justify-between items-center mb-6 no-print">
