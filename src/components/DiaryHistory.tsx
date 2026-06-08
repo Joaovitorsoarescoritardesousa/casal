@@ -20,6 +20,7 @@ export default function DiaryHistory({ entries, onDeleteEntry, onBackToHome, pro
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMoodFilter, setSelectedMoodFilter] = useState<string>('all');
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Find selected entry
   const selectedEntry = entries.find(e => e.id === selectedEntryId);
@@ -122,25 +123,23 @@ Cultivar nossa sintonização e riso mútuo a cada detalhe simples é minha part
         useCORS: true, // Allow external pictures to render correctly
         allowTaint: true,
         logging: false,
-        backgroundColor: '#fffcf9' // Matches template background perfectly
+        backgroundColor: '#ffffff' // Matches template background perfectly
       });
 
       const imgData = canvas.toDataURL('image/jpeg', 0.98);
       
       const pdf = new jsPDF({
         orientation: 'portrait',
-        unit: 'px',
+        unit: 'pt',
         format: 'a4'
       });
 
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
+      // Standard A4 dimensions in points
+      const pdfWidth = 595.28;
+      const pdfHeight = 841.89;
       
-      const imgWidth = pdfWidth;
-      const imgHeight = (canvas.height * pdfWidth) / canvas.width;
-      
-      // Since our hidden A4 template has double grid columns, it fits on 1 page beautifully
-      pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+      // Forces the captured image to map onto the exact A4 bounds 100% perfectly on a single page
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
 
       // Safe clean filename based on dates
       const cleanDate = selectedEntry.formattedDate
@@ -177,102 +176,177 @@ Cultivar nossa sintonização e riso mútuo a cada detalhe simples é minha part
             position: 'absolute',
             left: '-9999px',
             top: '-9999px',
-            width: '800px',
-            minHeight: '1130px',
-            backgroundColor: '#fffcf9',
-            boxSizing: 'border-box'
+            width: '794px',
+            height: '1123px',
+            backgroundColor: '#ffffff',
+            boxSizing: 'border-box',
+            overflow: 'hidden'
           }}
-          className="p-10 font-sans relative text-gray-800 border-[16px] border-[#fdf6f0]"
+          className="p-6 font-sans relative text-gray-800 border-[12px] border-[#ffecef]"
         >
           {/* Heart decorative watermark in background */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-[0.02] pointer-events-none select-none">
-            <Heart className="w-[500px] h-[500px] text-pink-600 fill-pink-600" />
+          <div className="absolute inset-0 flex items-center justify-center opacity-[0.012] pointer-events-none select-none">
+            <Heart className="w-[420px] h-[420px] text-pink-600 fill-pink-600" />
           </div>
 
-          <div className="relative border-2 border-pink-100/60 p-8 rounded-2xl w-full h-full flex flex-col justify-between">
-            {/* Header section */}
-            <div className="text-center pb-6 border-b border-pink-100/40">
-              <div className="flex items-center justify-center gap-1.5 text-pink-600 font-extrabold text-[10px] uppercase tracking-widest mb-1.5 bg-pink-50/50 px-3 py-1 rounded-full w-fit mx-auto">
-                <Sparkles className="w-3.5 h-3.5 text-pink-500 fill-pink-500/10" />
+          <div className="relative border-2 border-pink-100/30 p-5 rounded-2xl w-full h-full flex flex-col justify-between font-sans">
+            {/* Header section (Very compact) */}
+            <div className="text-center pb-3 border-b border-pink-100/30">
+              <div className="flex items-center justify-center gap-1.5 text-pink-600 font-extrabold text-[9px] uppercase tracking-widest mb-1 bg-pink-50/40 px-2.5 py-0.5 rounded-full w-fit mx-auto">
+                <Sparkles className="w-3 h-3 text-pink-500 fill-pink-500/10" />
                 <span>Nossa Página de Conexão</span>
-                <Sparkles className="w-3.5 h-3.5 text-pink-500 fill-pink-500/10" />
+                <Sparkles className="w-3 h-3 text-pink-500 fill-pink-500/10" />
               </div>
-              <h1 className="text-3xl font-black tracking-tight text-gray-800">
+              <h1 className="text-2xl font-black tracking-tight text-gray-800">
                 Diário do Casal
               </h1>
-              <p className="text-xs font-bold text-rose-500 mt-1 italic">
+              <p className="text-[10px] font-bold text-rose-500 mt-0.5 italic">
                 {profile.partner1} ❤️ {profile.partner2}
               </p>
               
-              <div className="mt-3.5 inline-flex items-center gap-2 bg-pink-50/50 border border-pink-100/50 px-5 py-1.5 rounded-full text-[11px] font-bold text-pink-700">
+              <div className="mt-1.5 inline-flex items-center gap-1.5 bg-pink-50/50 border border-pink-100/30 px-3 py-1 rounded-full text-[10px] font-bold text-pink-700 font-sans">
                 <span>📅 {selectedEntry.formattedDate} às {selectedEntry.formattedTime}</span>
               </div>
             </div>
 
-            {/* Quote of the Day */}
-            <div className="py-4 text-center">
-              <p className="text-[11px] text-gray-400 italic">
-                "Cultivar nossa sintonização e riso mútuo a cada detalhe simples é nossa parte favorita de nós."
-              </p>
+            {/* Quote of the Day (Very compact) */}
+            <div className="py-1.5 text-center text-[10px] text-gray-400 italic font-sans animate-fade-in">
+              "Cultivar nossa sintonização e riso mútuo a cada detalhe simples é nossa parte favorita de nós."
             </div>
 
-            {/* Bento Grid */}
-            <div className="grid grid-cols-12 gap-5 py-2">
+            {/* Bento Grid (Fits nicely in 1 page A4 size) */}
+            <div className="grid grid-cols-12 gap-4 flex-1 my-2 overflow-hidden items-stretch">
               
-              {/* Left Column (Sintonia & Gastronomia) */}
-              <div className="col-span-7 space-y-4">
+              {/* Left Column (Sintonia & Polaroid Photo & Extras) */}
+              <div className="col-span-6 flex flex-col gap-3 h-full justify-between font-sans">
                 
                 {/* Mood & Energy */}
-                <div className="bg-white p-4.5 rounded-[20px] border border-pink-50/60 shadow-[0_2px_12px_rgba(244,63,94,0.02)]">
-                  <span className="text-[9px] font-black uppercase text-pink-500 tracking-wider block mb-2">
+                <div className="bg-white p-3 rounded-[16px] border border-pink-50/60 shadow-[0_1px_8px_rgba(244,63,94,0.01)] font-sans">
+                  <span className="text-[8px] font-black uppercase text-pink-500 tracking-wider block mb-1 font-sans">
                     💓 Sintonia & Sentimentos
                   </span>
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-pink-50 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-10 h-10 bg-pink-50 rounded-xl flex items-center justify-center text-xl flex-shrink-0">
                       {getMoodEmoji(selectedEntry.moods[0])}
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-gray-800 leading-tight">
+                      <h4 className="text-xs font-bold text-gray-800 leading-tight block">
                         {selectedEntry.moods.join(' • ')}
                       </h4>
-                      <p className="text-[10px] font-bold text-gray-500 mt-1 flex items-center gap-1.5">
-                        <span className="text-xs bg-pink-100 px-1.5 py-0.5 rounded text-pink-700 font-extrabold">{getEnergyEmoji(selectedEntry.energy)}</span>
+                      <p className="text-[9px] font-bold text-gray-500 mt-0.5 flex items-center gap-1">
+                        <span className="text-[8.5px] bg-pink-100 px-1 py-0.2 rounded text-pink-700 font-extrabold">{getEnergyEmoji(selectedEntry.energy)}</span>
                         <span>Bateria/Disposição: {selectedEntry.energy}</span>
                       </p>
                     </div>
                   </div>
                 </div>
 
+                {/* Polaroid Photo Box */}
+                <div className="bg-white p-3 rounded-[16px] border border-pink-50/60 shadow-[0_1px_8px_rgba(244,63,94,0.01)] flex flex-col items-center flex-grow justify-center font-sans">
+                  <span className="text-[8px] font-black uppercase text-pink-500 tracking-wider mb-1.5 block font-sans">
+                    📸 Registro Fotográfico do Dia
+                  </span>
+                  <div className="w-full h-36 rounded-lg overflow-hidden border border-gray-100 relative mb-1.5">
+                    <img 
+                      referrerPolicy="no-referrer"
+                      src={selectedEntry.photoUrl} 
+                      alt="Momento do casal" 
+                      className="w-full h-full object-cover" 
+                    />
+                  </div>
+                  <p className="text-[9px] font-extrabold text-pink-700 tracking-tight leading-normal font-sans italic text-center max-w-[280px]">
+                    "{selectedEntry.photoCaption}"
+                  </p>
+                </div>
+
+                {/* Comentários extra details */}
+                {(selectedEntry.highlights.dinner?.description || selectedEntry.highlights.movie?.description) && (
+                  <div className="bg-[#faf8f5]/60 p-3 rounded-[16px] border border-gray-100/70 space-y-1 my-0.5 font-sans">
+                    <span className="text-[8px] font-black uppercase text-gray-400 tracking-wider block font-sans">
+                      📝 Notas & Comentários do Dia
+                    </span>
+                    {selectedEntry.highlights.dinner?.description && (
+                      <p className="text-[9px] text-gray-650 italic leading-snug font-sans">
+                        "🍽️ {selectedEntry.highlights.dinner.description}"
+                      </p>
+                    )}
+                    {selectedEntry.highlights.movie?.description && (
+                      <p className="text-[9px] text-gray-655 italic leading-snug pt-0.5 border-t border-gray-100/40 font-sans">
+                        "🍿 {selectedEntry.highlights.movie.description}"
+                      </p>
+                    )}
+                  </div>
+                )}
+                <div className="bg-white p-3 rounded-[16px] border border-pink-50/60 shadow-[0_1px_8px_rgba(244,63,94,0.01)] space-y-2 font-sans">
+                  <span className="text-[8px] font-black uppercase text-pink-500 tracking-wider block">
+                    🤝 Combinados & Acordos do Casal
+                  </span>
+                  
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-[8px] font-bold text-gray-400 block uppercase leading-none">👟 Exercício</span>
+                      <p className="text-[9px] font-bold text-gray-700 mt-0.5 leading-tight">{exercisesList[0]}</p>
+                    </div>
+                    <div>
+                      <span className="text-[8px] font-bold text-gray-400 block uppercase leading-none">💳 Conta Pago Por</span>
+                      <p className="text-[9px] font-bold text-gray-700 mt-0.5 leading-tight">{whoPaysPrice}</p>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-gray-50 pt-1.5 flex items-center justify-between font-sans">
+                    <div>
+                      <span className="text-[8px] font-bold text-rose-500 block uppercase leading-none">💝 Momento Love</span>
+                      <p className="text-[9px] font-bold text-gray-805 mt-0.5">{loveRule}</p>
+                    </div>
+                    <span className="text-[7px] font-extrabold text-pink-600 bg-pink-50 px-1.5 py-0.2 rounded-full uppercase tracking-wider">Regra Clara</span>
+                  </div>
+
+                  {selectedEntry.watchInHome && (
+                    <div className="border-t border-gray-50 pt-1.5 flex items-start gap-1.5">
+                      <span className="text-xs">🍿</span>
+                      <div>
+                        <span className="text-[8px] font-bold text-gray-400 block uppercase leading-none">O que assistir</span>
+                        <p className="text-[9px] font-bold text-gray-700 mt-0.5 leading-tight">{selectedEntry.watchInHome}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+              </div>
+
+              {/* Right Column (Gastronomia, Sabores & Gratidão) */}
+              <div className="col-span-6 flex flex-col gap-3 justify-between h-full font-sans">
+                
                 {/* Gastronomia: Ponto do Rolê e Desejos */}
-                <div className="bg-white p-4.5 rounded-[20px] border border-pink-50/60 shadow-[0_2px_12px_rgba(244,63,94,0.02)] space-y-3.5">
-                  <span className="text-[9px] font-black uppercase text-pink-500 tracking-wider block">
+                <div className="bg-white p-3.5 rounded-[16px] border border-pink-50/60 shadow-[0_1px_8px_rgba(244,63,94,0.01)] space-y-2 font-sans">
+                  <span className="text-[8px] font-black uppercase text-pink-500 tracking-wider block">
                     🍽️ Sabores & Gastronomia
                   </span>
                   
-                  <div className="flex items-start gap-2.5">
-                    <span className="text-lg">📍</span>
+                  <div className="flex items-start gap-2">
+                    <span className="text-sm">📍</span>
                     <div>
-                      <span className="text-[9px] font-bold text-pink-600 block leading-none">O Ponto do Rolê</span>
+                      <span className="text-[8px] font-bold text-pink-600 block leading-none">O Ponto do Rolê</span>
                       <p className="text-xs font-bold text-gray-800 leading-tight mt-0.5">{whereToEat}</p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 border-t border-gray-50 pt-3">
+                  <div className="grid grid-cols-2 gap-2 border-t border-gray-50 pt-2 font-sans">
                     <div>
-                      <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">🍔 Desejo de Comer</span>
-                      <div className="flex flex-wrap gap-1">
+                      <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1">🍔 Desejo de Comer</span>
+                      <div className="flex flex-wrap gap-0.5">
                         {foodItems.map((food, i) => (
-                          <span key={i} className="text-[9.5px] font-bold text-gray-700 bg-[#faf8f5] border border-gray-100 px-2 py-0.5 rounded-md">
+                          <span key={i} className="text-[8.5px] font-bold text-gray-700 bg-[#faf8f5] border border-gray-100 px-1.5 py-0.2 rounded font-sans">
                             {food}
                           </span>
                         ))}
                       </div>
                     </div>
                     <div>
-                      <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">🍦 Sobremesa/Doce</span>
-                      <div className="flex flex-wrap gap-1">
+                      <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest block mb-1">🍦 Sobremesa/Doce</span>
+                      <div className="flex flex-wrap gap-0.5 font-sans">
                         {dessertItems.map((sweet, i) => (
-                          <span key={i} className="text-[9.5px] font-bold text-gray-700 bg-[#faf8f5] border border-gray-100 px-2 py-0.5 rounded-md">
+                          <span key={i} className="text-[8.5px] font-bold text-gray-700 bg-[#faf8f5] border border-gray-100 px-1.5 py-0.2 rounded font-sans">
                             {sweet}
                           </span>
                         ))}
@@ -281,119 +355,39 @@ Cultivar nossa sintonização e riso mútuo a cada detalhe simples é minha part
                   </div>
                 </div>
 
-                {/* Acordos, Exercícios & Amor */}
-                <div className="bg-white p-4.5 rounded-[20px] border border-pink-50/60 shadow-[0_2px_12px_rgba(244,63,94,0.02)] space-y-3">
-                  <span className="text-[9px] font-black uppercase text-pink-500 tracking-wider block">
-                    🤝 Combinados & Acordos do Casal
-                  </span>
-                  
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <span className="text-[9px] font-bold text-gray-400 block uppercase">👟 Exercício Realizado</span>
-                      <p className="text-[10px] font-bold text-gray-700 mt-0.5 leading-tight">{exercisesList[0]}</p>
-                    </div>
-                    <div>
-                      <span className="text-[9px] font-bold text-gray-400 block uppercase">💳 Conta Pago Por</span>
-                      <p className="text-[10px] font-bold text-gray-700 mt-0.5 leading-tight">{whoPaysPrice}</p>
-                    </div>
-                  </div>
-
-                  <div className="border-t border-gray-50 pt-2.5 flex items-center justify-between">
-                    <div>
-                      <span className="text-[9px] font-bold text-rose-500 block uppercase">💝 Momento Love</span>
-                      <p className="text-[10px] font-bold text-gray-850">{loveRule}</p>
-                    </div>
-                    <span className="text-[8px] font-extrabold text-pink-600 bg-pink-50 px-2 py-0.5 rounded-full uppercase tracking-wider">Regra Clara</span>
-                  </div>
-
-                  {selectedEntry.watchInHome && (
-                    <div className="border-t border-gray-50 pt-2.5 flex items-start gap-2">
-                      <span className="text-sm">🍿</span>
-                      <div>
-                        <span className="text-[9px] font-bold text-gray-400 block uppercase">Cinema em Casa / O que assistir</span>
-                        <p className="text-[10.5px] font-bold text-gray-700 mt-0.5 leading-tight">{selectedEntry.watchInHome}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-              </div>
-
-              {/* Right Column (Gratidão & Comentários) */}
-              <div className="col-span-5 flex flex-col justify-between space-y-4">
-                
-                {/* Gratitudes card */}
-                <div className="bg-white p-4.5 rounded-[20px] border border-pink-50/60 shadow-[0_2px_12px_rgba(244,63,94,0.02)] flex-1">
-                  <span className="text-[9px] font-black uppercase text-pink-500 tracking-wider block mb-3">
-                    💫 Sou imensamente grato(a) por...
-                  </span>
-                  <ul className="space-y-2.5">
-                    {selectedEntry.gratitudes.map((grat, index) => (
-                      <li key={index} className="flex items-start gap-2 bg-[#fdfaf8]/85 p-2.5 rounded-xl border border-pink-100/10">
-                        <span className="text-pink-500 text-xs font-black mt-0.5 shrink-0">❤️</span>
-                        <p className="text-[10px] font-bold text-gray-700 leading-snug">
-                          {grat}
-                        </p>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Comentários extra details */}
-                {(selectedEntry.highlights.dinner?.description || selectedEntry.highlights.movie?.description) && (
-                  <div className="bg-[#faf8f5] p-4.5 rounded-[20px] border border-gray-100 shadow-xs space-y-2.5">
-                    <span className="text-[9px] font-black uppercase text-gray-400 tracking-wider block">
-                      📝 Notas & Comentários do Dia
+                {/* Gratitudes card (very clean list) */}
+                <div className="bg-white p-3.5 rounded-[16px] border border-pink-50/60 shadow-[0_1px_8px_rgba(244,63,94,0.01)] flex-grow flex flex-col justify-between font-sans">
+                  <div>
+                    <span className="text-[8px] font-black uppercase text-pink-500 tracking-wider block mb-1.5 font-sans">
+                      💫 Sou imensamente grato(a) por...
                     </span>
-                    {selectedEntry.highlights.dinner?.description && (
-                      <p className="text-[10px] text-gray-600 italic leading-relaxed">
-                        "🍽️ {selectedEntry.highlights.dinner.description}"
-                      </p>
-                    )}
-                    {selectedEntry.highlights.movie?.description && (
-                      <p className="text-[10px] text-gray-600 italic leading-relaxed pt-1 border-t border-gray-100/55">
-                        "🍿 {selectedEntry.highlights.movie.description}"
-                      </p>
-                    )}
+                    <ul className="space-y-1.5 font-sans">
+                      {selectedEntry.gratitudes.map((grat, index) => (
+                        <li key={index} className="flex items-start gap-1 bg-[#fdfaf8]/60 p-1 rounded-lg border border-pink-100/10 font-sans">
+                          <span className="text-pink-500 text-[9px] font-black shrink-0 mt-0.5">❤️</span>
+                          <p className="text-[8.5px] font-semibold text-gray-750 leading-tight">
+                            {grat}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                )}
+                </div>
 
               </div>
             </div>
 
-            {/* Bottom Photo Block in Polaroid styling */}
-            <div className="mt-4 bg-white p-4 rounded-xl border border-pink-50 shadow-xs flex flex-col items-center">
-              <span className="text-[9px] font-black uppercase text-pink-500 tracking-widest mb-2 block text-center">
-                📸 Registro Fotográfico do Dia
-              </span>
-              
-              <div className="w-full h-44 rounded-lg overflow-hidden border border-gray-100 relative">
-                <img 
-                  referrerPolicy="no-referrer"
-                  src={selectedEntry.photoUrl} 
-                  alt="Momento do casal" 
-                  className="w-full h-full object-cover" 
-                />
-              </div>
-              
-              <div className="pt-3 pb-1 w-full text-center">
-                <p className="text-[11px] font-extrabold text-pink-700 tracking-tight leading-normal font-sans italic">
-                  "{selectedEntry.photoCaption}"
-                </p>
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="mt-6 pt-4 border-t border-pink-100/40 text-center flex flex-col items-center justify-center">
-              <p className="text-[10px] font-bold text-gray-400 leading-none">
+            {/* Footer section (Very compact) */}
+            <div className="pt-2 border-t border-pink-100/30 text-center flex flex-col items-center justify-center font-sans">
+              <p className="text-[9px] font-bold text-gray-400 leading-none">
                 "Cada dia ao seu lado é uma memória guardada para sempre no coração."
               </p>
-              <div className="flex items-center gap-1.5 mt-2.5">
-                <Heart className="w-3 h-3 text-pink-500 fill-pink-500" />
-                <span className="text-[9px] font-extrabold text-gray-500 uppercase tracking-widest">
+              <div className="flex items-center gap-1 mt-1.5 font-sans">
+                <Heart className="w-2.5 h-2.5 text-pink-400 fill-pink-400" />
+                <span className="text-[8px] font-extrabold text-gray-500 uppercase tracking-widest font-sans">
                   {profile.partner1} & {profile.partner2} • Diário do Casal
                 </span>
-                <Heart className="w-3 h-3 text-pink-500 fill-pink-500" />
+                <Heart className="w-2.5 h-2.5 text-pink-400 fill-pink-400" />
               </div>
             </div>
 
@@ -403,25 +397,51 @@ Cultivar nossa sintonização e riso mútuo a cada detalhe simples é minha part
         {/* Back and actions header */}
         <div className="flex justify-between items-center mb-6 no-print">
           <button 
-            onClick={() => setSelectedEntryId(null)}
-            className="flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-pink-600 bg-white border border-gray-100 rounded-full px-4 py-2 transition-all active:scale-95"
+            onClick={() => {
+              setSelectedEntryId(null);
+              setShowDeleteConfirm(false);
+            }}
+            className="flex items-center gap-1.5 text-xs font-bold text-gray-500 hover:text-pink-600 bg-white border border-gray-100 rounded-full px-4 py-2 transition-all active:scale-95 shadow-2xs"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Voltar ao Histórico</span>
           </button>
           
-          <button 
-            onClick={() => {
-              if (window.confirm("Deseja apagar este registro de memória do diário?")) {
-                onDeleteEntry(selectedEntry.id);
-                setSelectedEntryId(null);
-              }
-            }}
-            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
-            title="Excluir Registro"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+          {!showDeleteConfirm ? (
+            <button 
+              onClick={() => setShowDeleteConfirm(true)}
+              className="flex items-center gap-1.5 text-xs font-bold text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-150/70 border border-red-105 rounded-full px-4 py-2 transition-all active:scale-95 shadow-2xs animate-fade-in"
+              title="Excluir Registro"
+              id="btn-trigger-delete"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Apagar Registro</span>
+            </button>
+          ) : (
+            <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-full py-1 px-3 shadow-xs animate-fade-in" id="confirm-delete-block">
+              <span className="text-[10px] font-black text-red-700">Tem certeza?</span>
+              <button 
+                onClick={() => {
+                  if (selectedEntry) {
+                    onDeleteEntry(selectedEntry.id);
+                    setSelectedEntryId(null);
+                    setShowDeleteConfirm(false);
+                  }
+                }}
+                className="text-[10px] font-extrabold text-white bg-red-500 hover:bg-red-650 rounded-full px-3 py-1.5 transition-all shadow-3xs active:scale-95 text-center leading-none"
+                id="btn-confirm-delete-yes"
+              >
+                Sim, apagar
+              </button>
+              <button 
+                onClick={() => setShowDeleteConfirm(false)}
+                className="text-[10px] font-bold text-gray-500 bg-white hover:bg-gray-100 border border-gray-150 rounded-full px-3 py-1.5 transition-all active:scale-95 text-center leading-none"
+                id="btn-confirm-delete-no"
+              >
+                Cancelar
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Capture Container for instant high quality PDF */}
