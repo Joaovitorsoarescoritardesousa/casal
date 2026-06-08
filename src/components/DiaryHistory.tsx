@@ -6,15 +6,16 @@ import {
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
-import { DiaryEntry } from '../types';
+import { DiaryEntry, CoupleProfile } from '../types';
 
 interface DiaryHistoryProps {
   entries: DiaryEntry[];
   onDeleteEntry: (id: string) => void;
   onBackToHome: () => void;
+  profile: CoupleProfile;
 }
 
-export default function DiaryHistory({ entries, onDeleteEntry, onBackToHome }: DiaryHistoryProps) {
+export default function DiaryHistory({ entries, onDeleteEntry, onBackToHome, profile }: DiaryHistoryProps) {
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMoodFilter, setSelectedMoodFilter] = useState<string>('all');
@@ -104,7 +105,7 @@ Cultivar nossa sintonização e riso mútuo a cada detalhe simples é minha part
   const handlePrintPDF = async () => {
     if (!selectedEntry || isGeneratingPdf) return;
 
-    const element = document.getElementById('diary-detail-capture');
+    const element = document.getElementById('diary-detail-pdf-template');
     if (!element) {
       window.print();
       return;
@@ -121,10 +122,10 @@ Cultivar nossa sintonização e riso mútuo a cada detalhe simples é minha part
         useCORS: true, // Allow external pictures to render correctly
         allowTaint: true,
         logging: false,
-        backgroundColor: '#f9fafb' // Matches layout styling background
+        backgroundColor: '#fffcf9' // Matches template background perfectly
       });
 
-      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const imgData = canvas.toDataURL('image/jpeg', 0.98);
       
       const pdf = new jsPDF({
         orientation: 'portrait',
@@ -138,19 +139,8 @@ Cultivar nossa sintonização e riso mútuo a cada detalhe simples é minha part
       const imgWidth = pdfWidth;
       const imgHeight = (canvas.height * pdfWidth) / canvas.width;
       
-      let heightLeft = imgHeight;
-      let position = 0;
-
-      // Fit content beautifully onto standard PDF document page height(s)
-      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pdfHeight;
-
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pdfHeight;
-      }
+      // Since our hidden A4 template has double grid columns, it fits on 1 page beautifully
+      pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
 
       // Safe clean filename based on dates
       const cleanDate = selectedEntry.formattedDate
@@ -180,6 +170,236 @@ Cultivar nossa sintonização e riso mútuo a cada detalhe simples é minha part
     // RENDER DETAIL VIEW - Beautiful Bento Grid matching the custom 9 choices precisely
     return (
       <div className="w-full max-w-xl mx-auto px-4 pt-4 pb-48 animate-fade-in print:pb-0">
+        {/* EXCLUSIVE HIGH RESOLUTION PRINT TEMPLATE (HIDDEN OFF-SCREEN) */}
+        <div 
+          id="diary-detail-pdf-template" 
+          style={{
+            position: 'absolute',
+            left: '-9999px',
+            top: '-9999px',
+            width: '800px',
+            minHeight: '1130px',
+            backgroundColor: '#fffcf9',
+            boxSizing: 'border-box'
+          }}
+          className="p-10 font-sans relative text-gray-800 border-[16px] border-[#fdf6f0]"
+        >
+          {/* Heart decorative watermark in background */}
+          <div className="absolute inset-0 flex items-center justify-center opacity-[0.02] pointer-events-none select-none">
+            <Heart className="w-[500px] h-[500px] text-pink-600 fill-pink-600" />
+          </div>
+
+          <div className="relative border-2 border-pink-100/60 p-8 rounded-2xl w-full h-full flex flex-col justify-between">
+            {/* Header section */}
+            <div className="text-center pb-6 border-b border-pink-100/40">
+              <div className="flex items-center justify-center gap-1.5 text-pink-600 font-extrabold text-[10px] uppercase tracking-widest mb-1.5 bg-pink-50/50 px-3 py-1 rounded-full w-fit mx-auto">
+                <Sparkles className="w-3.5 h-3.5 text-pink-500 fill-pink-500/10" />
+                <span>Nossa Página de Conexão</span>
+                <Sparkles className="w-3.5 h-3.5 text-pink-500 fill-pink-500/10" />
+              </div>
+              <h1 className="text-3xl font-black tracking-tight text-gray-800">
+                Diário do Casal
+              </h1>
+              <p className="text-xs font-bold text-rose-500 mt-1 italic">
+                {profile.partner1} ❤️ {profile.partner2}
+              </p>
+              
+              <div className="mt-3.5 inline-flex items-center gap-2 bg-pink-50/50 border border-pink-100/50 px-5 py-1.5 rounded-full text-[11px] font-bold text-pink-700">
+                <span>📅 {selectedEntry.formattedDate} às {selectedEntry.formattedTime}</span>
+              </div>
+            </div>
+
+            {/* Quote of the Day */}
+            <div className="py-4 text-center">
+              <p className="text-[11px] text-gray-400 italic">
+                "Cultivar nossa sintonização e riso mútuo a cada detalhe simples é nossa parte favorita de nós."
+              </p>
+            </div>
+
+            {/* Bento Grid */}
+            <div className="grid grid-cols-12 gap-5 py-2">
+              
+              {/* Left Column (Sintonia & Gastronomia) */}
+              <div className="col-span-7 space-y-4">
+                
+                {/* Mood & Energy */}
+                <div className="bg-white p-4.5 rounded-[20px] border border-pink-50/60 shadow-[0_2px_12px_rgba(244,63,94,0.02)]">
+                  <span className="text-[9px] font-black uppercase text-pink-500 tracking-wider block mb-2">
+                    💓 Sintonia & Sentimentos
+                  </span>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-pink-50 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">
+                      {getMoodEmoji(selectedEntry.moods[0])}
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-gray-800 leading-tight">
+                        {selectedEntry.moods.join(' • ')}
+                      </h4>
+                      <p className="text-[10px] font-bold text-gray-500 mt-1 flex items-center gap-1.5">
+                        <span className="text-xs bg-pink-100 px-1.5 py-0.5 rounded text-pink-700 font-extrabold">{getEnergyEmoji(selectedEntry.energy)}</span>
+                        <span>Bateria/Disposição: {selectedEntry.energy}</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Gastronomia: Ponto do Rolê e Desejos */}
+                <div className="bg-white p-4.5 rounded-[20px] border border-pink-50/60 shadow-[0_2px_12px_rgba(244,63,94,0.02)] space-y-3.5">
+                  <span className="text-[9px] font-black uppercase text-pink-500 tracking-wider block">
+                    🍽️ Sabores & Gastronomia
+                  </span>
+                  
+                  <div className="flex items-start gap-2.5">
+                    <span className="text-lg">📍</span>
+                    <div>
+                      <span className="text-[9px] font-bold text-pink-600 block leading-none">O Ponto do Rolê</span>
+                      <p className="text-xs font-bold text-gray-800 leading-tight mt-0.5">{whereToEat}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 border-t border-gray-50 pt-3">
+                    <div>
+                      <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">🍔 Desejo de Comer</span>
+                      <div className="flex flex-wrap gap-1">
+                        {foodItems.map((food, i) => (
+                          <span key={i} className="text-[9.5px] font-bold text-gray-700 bg-[#faf8f5] border border-gray-100 px-2 py-0.5 rounded-md">
+                            {food}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest block mb-1">🍦 Sobremesa/Doce</span>
+                      <div className="flex flex-wrap gap-1">
+                        {dessertItems.map((sweet, i) => (
+                          <span key={i} className="text-[9.5px] font-bold text-gray-700 bg-[#faf8f5] border border-gray-100 px-2 py-0.5 rounded-md">
+                            {sweet}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Acordos, Exercícios & Amor */}
+                <div className="bg-white p-4.5 rounded-[20px] border border-pink-50/60 shadow-[0_2px_12px_rgba(244,63,94,0.02)] space-y-3">
+                  <span className="text-[9px] font-black uppercase text-pink-500 tracking-wider block">
+                    🤝 Combinados & Acordos do Casal
+                  </span>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <span className="text-[9px] font-bold text-gray-400 block uppercase">👟 Exercício Realizado</span>
+                      <p className="text-[10px] font-bold text-gray-700 mt-0.5 leading-tight">{exercisesList[0]}</p>
+                    </div>
+                    <div>
+                      <span className="text-[9px] font-bold text-gray-400 block uppercase">💳 Conta Pago Por</span>
+                      <p className="text-[10px] font-bold text-gray-700 mt-0.5 leading-tight">{whoPaysPrice}</p>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-gray-50 pt-2.5 flex items-center justify-between">
+                    <div>
+                      <span className="text-[9px] font-bold text-rose-500 block uppercase">💝 Momento Love</span>
+                      <p className="text-[10px] font-bold text-gray-850">{loveRule}</p>
+                    </div>
+                    <span className="text-[8px] font-extrabold text-pink-600 bg-pink-50 px-2 py-0.5 rounded-full uppercase tracking-wider">Regra Clara</span>
+                  </div>
+
+                  {selectedEntry.watchInHome && (
+                    <div className="border-t border-gray-50 pt-2.5 flex items-start gap-2">
+                      <span className="text-sm">🍿</span>
+                      <div>
+                        <span className="text-[9px] font-bold text-gray-400 block uppercase">Cinema em Casa / O que assistir</span>
+                        <p className="text-[10.5px] font-bold text-gray-700 mt-0.5 leading-tight">{selectedEntry.watchInHome}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+              </div>
+
+              {/* Right Column (Gratidão & Comentários) */}
+              <div className="col-span-5 flex flex-col justify-between space-y-4">
+                
+                {/* Gratitudes card */}
+                <div className="bg-white p-4.5 rounded-[20px] border border-pink-50/60 shadow-[0_2px_12px_rgba(244,63,94,0.02)] flex-1">
+                  <span className="text-[9px] font-black uppercase text-pink-500 tracking-wider block mb-3">
+                    💫 Sou imensamente grato(a) por...
+                  </span>
+                  <ul className="space-y-2.5">
+                    {selectedEntry.gratitudes.map((grat, index) => (
+                      <li key={index} className="flex items-start gap-2 bg-[#fdfaf8]/85 p-2.5 rounded-xl border border-pink-100/10">
+                        <span className="text-pink-500 text-xs font-black mt-0.5 shrink-0">❤️</span>
+                        <p className="text-[10px] font-bold text-gray-700 leading-snug">
+                          {grat}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Comentários extra details */}
+                {(selectedEntry.highlights.dinner?.description || selectedEntry.highlights.movie?.description) && (
+                  <div className="bg-[#faf8f5] p-4.5 rounded-[20px] border border-gray-100 shadow-xs space-y-2.5">
+                    <span className="text-[9px] font-black uppercase text-gray-400 tracking-wider block">
+                      📝 Notas & Comentários do Dia
+                    </span>
+                    {selectedEntry.highlights.dinner?.description && (
+                      <p className="text-[10px] text-gray-600 italic leading-relaxed">
+                        "🍽️ {selectedEntry.highlights.dinner.description}"
+                      </p>
+                    )}
+                    {selectedEntry.highlights.movie?.description && (
+                      <p className="text-[10px] text-gray-600 italic leading-relaxed pt-1 border-t border-gray-100/55">
+                        "🍿 {selectedEntry.highlights.movie.description}"
+                      </p>
+                    )}
+                  </div>
+                )}
+
+              </div>
+            </div>
+
+            {/* Bottom Photo Block in Polaroid styling */}
+            <div className="mt-4 bg-white p-4 rounded-xl border border-pink-50 shadow-xs flex flex-col items-center">
+              <span className="text-[9px] font-black uppercase text-pink-500 tracking-widest mb-2 block text-center">
+                📸 Registro Fotográfico do Dia
+              </span>
+              
+              <div className="w-full h-44 rounded-lg overflow-hidden border border-gray-100 relative">
+                <img 
+                  referrerPolicy="no-referrer"
+                  src={selectedEntry.photoUrl} 
+                  alt="Momento do casal" 
+                  className="w-full h-full object-cover" 
+                />
+              </div>
+              
+              <div className="pt-3 pb-1 w-full text-center">
+                <p className="text-[11px] font-extrabold text-pink-700 tracking-tight leading-normal font-sans italic">
+                  "{selectedEntry.photoCaption}"
+                </p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="mt-6 pt-4 border-t border-pink-100/40 text-center flex flex-col items-center justify-center">
+              <p className="text-[10px] font-bold text-gray-400 leading-none">
+                "Cada dia ao seu lado é uma memória guardada para sempre no coração."
+              </p>
+              <div className="flex items-center gap-1.5 mt-2.5">
+                <Heart className="w-3 h-3 text-pink-500 fill-pink-500" />
+                <span className="text-[9px] font-extrabold text-gray-500 uppercase tracking-widest">
+                  {profile.partner1} & {profile.partner2} • Diário do Casal
+                </span>
+                <Heart className="w-3 h-3 text-pink-500 fill-pink-500" />
+              </div>
+            </div>
+
+          </div>
+        </div>
+
         {/* Back and actions header */}
         <div className="flex justify-between items-center mb-6 no-print">
           <button 

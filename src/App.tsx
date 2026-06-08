@@ -267,6 +267,7 @@ export default function App() {
                   entries={entries}
                   onDeleteEntry={handleDeleteEntry}
                   onBackToHome={() => setCurrentTab('inicio')}
+                  profile={profile}
                 />
               )}
 
