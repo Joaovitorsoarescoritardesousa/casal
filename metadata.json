@@ -1,0 +1,6 @@
+{
+  "name": "Diário do Casal",
+  "description": "Um aplicativo de diário interativo e afetuoso para casais registrarem seus sentimentos, compartilharem gratidão e planejarem rolês.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
