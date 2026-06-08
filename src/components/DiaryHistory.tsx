@@ -123,22 +123,104 @@ Cultivar nossa sintonização e riso mútuo a cada detalhe simples é minha part
         useCORS: true, // Allow external pictures to render correctly
         allowTaint: true,
         logging: false,
-        backgroundColor: '#ffffff' // Matches template background perfectly
+        backgroundColor: '#ffffff', // Matches template background perfectly
+        onclone: (clonedDoc) => {
+          const clonedWindow = clonedDoc.defaultView;
+          if (clonedWindow) {
+            const originalGetComputedStyle = clonedWindow.getComputedStyle;
+            
+            const canvasHelper = clonedDoc.createElement('canvas');
+            canvasHelper.width = 1;
+            canvasHelper.height = 1;
+            const ctxHelper = canvasHelper.getContext('2d');
+            
+            const normalizeColor = (colorStr: string): string => {
+              if (!colorStr || typeof colorStr !== 'string') return colorStr;
+              if (!colorStr.includes('oklch')) return colorStr;
+              
+              try {
+                if (!ctxHelper) return colorStr;
+                ctxHelper.clearRect(0, 0, 1, 1);
+                ctxHelper.fillStyle = colorStr;
+                ctxHelper.fillRect(0, 0, 1, 1);
+                const imgData = ctxHelper.getImageData(0, 0, 1, 1);
+                const r = imgData.data[0];
+                const g = imgData.data[1];
+                const b = imgData.data[2];
+                const a = imgData.data[3] / 255;
+                return `rgba(${r}, ${g}, ${b}, ${a})`;
+              } catch (err) {
+                return colorStr;
+              }
+            };
+
+            clonedWindow.getComputedStyle = function (elt, pseudoElt) {
+              const style = originalGetComputedStyle.call(clonedWindow, elt, pseudoElt);
+              return new Proxy(style, {
+                get(target, prop) {
+                  const value = target[prop as any];
+                  if (typeof value === 'string' && value.includes('oklch')) {
+                    return normalizeColor(value);
+                  }
+                  if (typeof value === 'string' && prop === 'boxShadow' && value.includes('oklch')) {
+                    return value.replace(/oklch\([^)]+\)/g, (match) => normalizeColor(match));
+                  }
+                  if (typeof value === 'function') {
+                    return value.bind(target);
+                  }
+                  return value;
+                }
+              });
+            };
+
+            const container = clonedDoc.getElementById('diary-detail-pdf-template');
+            if (container) {
+              const allNodes = container.getElementsByTagName('*');
+              for (let i = 0; i < allNodes.length; i++) {
+                const node = allNodes[i] as any;
+                const tagName = node.tagName?.toLowerCase();
+                
+                // SVG attributes normalization for oklch colors (e.g. fill / stroke)
+                if (tagName === 'path' || tagName === 'svg' || tagName === 'circle' || tagName === 'rect') {
+                  const fillAttr = node.getAttribute('fill');
+                  if (fillAttr && fillAttr.includes('oklch')) {
+                    node.setAttribute('fill', normalizeColor(fillAttr));
+                  }
+                  const strokeAttr = node.getAttribute('stroke');
+                  if (strokeAttr && strokeAttr.includes('oklch')) {
+                    node.setAttribute('stroke', normalizeColor(strokeAttr));
+                  }
+                }
+                
+                // Inline style props normalization
+                if (node.style) {
+                  for (let j = 0; j < node.style.length; j++) {
+                    const propName = node.style[j];
+                    const propValue = node.style.getPropertyValue(propName);
+                    if (propValue && propValue.includes('oklch')) {
+                      node.style.setProperty(propName, normalizeColor(propValue));
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       });
 
       const imgData = canvas.toDataURL('image/jpeg', 0.98);
       
+      // Create a smaller, highly consolidated PDF page form
+      const pdfWidth = 550;
+      const pdfHeight = 715;
+
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'pt',
-        format: 'a4'
+        format: [pdfWidth, pdfHeight]
       });
-
-      // Standard A4 dimensions in points
-      const pdfWidth = 595.28;
-      const pdfHeight = 841.89;
       
-      // Forces the captured image to map onto the exact A4 bounds 100% perfectly on a single page
+      // Forces the captured image to map onto the exact bounds 100% perfectly on a single page
       pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
 
       // Safe clean filename based on dates
@@ -171,25 +253,24 @@ Cultivar nossa sintonização e riso mútuo a cada detalhe simples é minha part
       <div className="w-full max-w-xl mx-auto px-4 pt-4 pb-48 animate-fade-in print:pb-0">
         {/* EXCLUSIVE HIGH RESOLUTION PRINT TEMPLATE (HIDDEN OFF-SCREEN) */}
         {(() => {
-          // Compute active selected categories for A4 PDF dynamically
+          // Compute active selected categories for compact PDF dynamically
           const activeCategories = [];
 
           if (selectedEntry.moods && selectedEntry.moods.length > 0) {
             activeCategories.push({
               id: 'moods',
-              title: '💓 Sintonia & Sentimentos',
+              title: '💓 Sintonia',
               bgColor: 'bg-white',
-              borderColor: 'border-blue-100/70',
+              borderColor: 'border-blue-100/60',
               content: (
-                <div className="flex items-center gap-2 font-sans">
-                  <div className="w-8 h-8 rounded-lg bg-pink-50 flex items-center justify-center text-lg flex-shrink-0">
+                <div className="flex items-center gap-1 font-sans">
+                  <div className="w-5 h-5 rounded bg-pink-105 flex items-center justify-center text-xs flex-shrink-0">
                     {getMoodEmoji(selectedEntry.moods[0])}
                   </div>
                   <div>
-                    <p className="text-[9.5px] font-bold text-gray-800 leading-tight">
+                    <p className="text-[7.5px] font-extrabold text-gray-800 leading-none truncate max-w-[90px]">
                       {selectedEntry.moods.join(' • ')}
                     </p>
-                    <p className="text-[7.5px] font-medium text-gray-400 mt-0.5">Sintonia expressada hoje</p>
                   </div>
                 </div>
               )
@@ -199,19 +280,18 @@ Cultivar nossa sintonização e riso mútuo a cada detalhe simples é minha part
           if (selectedEntry.energy) {
             activeCategories.push({
               id: 'energy',
-              title: '⚡ Bateria & Disposição',
-              bgColor: 'bg-blue-50/15',
-              borderColor: 'border-blue-100/50',
+              title: '⚡ Bateria',
+              bgColor: 'bg-blue-50/10',
+              borderColor: 'border-blue-100/40',
               content: (
-                <div className="flex items-center gap-2 font-sans">
-                  <div className="w-8 h-8 rounded-lg bg-blue-50/80 flex items-center justify-center text-lg flex-shrink-0">
+                <div className="flex items-center gap-1 font-sans">
+                  <div className="w-5 h-5 rounded bg-blue-50 flex items-center justify-center text-[9px] flex-shrink-0">
                     {getEnergyEmoji(selectedEntry.energy)}
                   </div>
                   <div>
-                    <p className="text-[9.5px] font-bold text-gray-800 leading-tight">
-                      Bateria: {selectedEntry.energy}
+                    <p className="text-[7.5px] font-extrabold text-gray-805 leading-none">
+                      {selectedEntry.energy}
                     </p>
-                    <p className="text-[7.5px] font-medium text-gray-400 mt-0.5">Disposição e humor do casal</p>
                   </div>
                 </div>
               )
@@ -221,16 +301,13 @@ Cultivar nossa sintonização e riso mútuo a cada detalhe simples é minha part
           if (selectedEntry.whereToEat) {
             activeCategories.push({
               id: 'whereToEat',
-              title: '📍 O Ponto do Rolê',
+              title: '📍 Rolê',
               bgColor: 'bg-white',
-              borderColor: 'border-gray-200/60',
+              borderColor: 'border-gray-200/50',
               content: (
-                <div className="flex items-start gap-1 font-sans">
-                  <span className="text-[11px] shrink-0">📍</span>
-                  <div>
-                    <p className="text-[9.5px] font-bold text-gray-800 leading-tight">{whereToEat}</p>
-                    <p className="text-[7.5px] font-medium text-gray-400 mt-0.5">Local para alimentar a conexão</p>
-                  </div>
+                <div className="flex items-start gap-0.5 font-sans">
+                  <span className="text-[9px] shrink-0 leading-none">📍</span>
+                  <p className="text-[7.5px] font-black text-gray-800 leading-tight truncate max-w-[100px]">{whereToEat}</p>
                 </div>
               )
             });
@@ -239,13 +316,13 @@ Cultivar nossa sintonização e riso mútuo a cada detalhe simples é minha part
           if (selectedEntry.wantToEat && selectedEntry.wantToEat.length > 0) {
             activeCategories.push({
               id: 'wantToEat',
-              title: '🍔 Desejos de Comer',
+              title: '🍔 Desejos',
               bgColor: 'bg-white',
-              borderColor: 'border-gray-200/60',
+              borderColor: 'border-gray-200/50',
               content: (
                 <div className="flex flex-wrap gap-0.5 font-sans">
-                  {foodItems.map((food, i) => (
-                    <span key={i} className="text-[7.5px] font-bold text-gray-700 bg-gray-50 border border-gray-100 px-1 py-0.2 rounded">
+                  {foodItems.slice(0, 2).map((food, i) => (
+                    <span key={i} className="text-[6.5px] font-bold text-gray-700 bg-gray-50 border border-gray-100 px-1 py-0.1 rounded truncate max-w-[48px]">
                       {food}
                     </span>
                   ))}
@@ -257,13 +334,13 @@ Cultivar nossa sintonização e riso mútuo a cada detalhe simples é minha part
           if (selectedEntry.dessert && selectedEntry.dessert.length > 0) {
             activeCategories.push({
               id: 'dessert',
-              title: '🍦 Sobremesas',
+              title: '🍦 Sobremesa',
               bgColor: 'bg-white',
-              borderColor: 'border-gray-200/60',
+              borderColor: 'border-gray-200/50',
               content: (
                 <div className="flex flex-wrap gap-0.5 font-sans">
-                  {dessertItems.map((sweet, i) => (
-                    <span key={i} className="text-[7.5px] font-bold text-gray-700 bg-gray-50 border border-gray-100 px-1 py-0.2 rounded">
+                  {dessertItems.slice(0, 2).map((sweet, i) => (
+                    <span key={i} className="text-[6.5px] font-bold text-gray-700 bg-gray-50 border border-gray-100 px-1 py-0.1 rounded truncate max-w-[48px]">
                       {sweet}
                     </span>
                   ))}
@@ -275,13 +352,13 @@ Cultivar nossa sintonização e riso mútuo a cada detalhe simples é minha part
           if (selectedEntry.exercise && selectedEntry.exercise.length > 0) {
             activeCategories.push({
               id: 'exercise',
-              title: '👟 Exercício do Casal',
-              bgColor: 'bg-blue-50/15',
-              borderColor: 'border-blue-100/50',
+              title: '👟 Exercício',
+              bgColor: 'bg-blue-50/10',
+              borderColor: 'border-blue-100/40',
               content: (
                 <div className="flex flex-wrap gap-0.5 font-sans">
-                  {exercisesList.map((ex, i) => (
-                    <span key={i} className="text-[7.5px] font-bold text-pink-600 bg-pink-50/40 px-1 py-0.2 rounded">
+                  {exercisesList.slice(0, 2).map((ex, i) => (
+                    <span key={i} className="text-[6.5px] font-bold text-pink-600 bg-pink-50/40 px-1 py-0.1 rounded truncate max-w-[48px]">
                       {ex}
                     </span>
                   ))}
@@ -293,16 +370,13 @@ Cultivar nossa sintonização e riso mútuo a cada detalhe simples é minha part
           if (selectedEntry.watchInHome && selectedEntry.watchInHome.trim() !== '') {
             activeCategories.push({
               id: 'watchInHome',
-              title: '🍿 Cinema em Casa',
+              title: '🍿 Assistir',
               bgColor: 'bg-white',
-              borderColor: 'border-gray-200/60',
+              borderColor: 'border-gray-200/50',
               content: (
-                <div className="flex items-start gap-1 font-sans">
-                  <span className="text-[11px] shrink-0">🍿</span>
-                  <div>
-                    <p className="text-[9.5px] font-bold text-gray-800 leading-tight">{selectedEntry.watchInHome}</p>
-                    <p className="text-[7.5px] font-medium text-gray-400 mt-0.5">O que assistir juntos</p>
-                  </div>
+                <div className="flex items-start gap-0.5 font-sans">
+                  <span className="text-[8px] shrink-0 leading-none">🍿</span>
+                  <p className="text-[7.5px] font-black text-gray-800 leading-tight truncate max-w-[100px]">{selectedEntry.watchInHome}</p>
                 </div>
               )
             });
@@ -311,16 +385,13 @@ Cultivar nossa sintonização e riso mútuo a cada detalhe simples é minha part
           if (selectedEntry.whoPays) {
             activeCategories.push({
               id: 'whoPays',
-              title: '💳 Acordo da Conta',
+              title: '💳 Conta',
               bgColor: 'bg-white',
               borderColor: 'border-gray-150',
               content: (
-                <div className="flex items-center gap-1 font-sans">
-                  <span className="text-[11px] shrink-0">💳</span>
-                  <div>
-                    <p className="text-[9.5px] font-bold text-gray-800 leading-tight">{whoPaysPrice}</p>
-                    <p className="text-[7.5px] font-medium text-gray-400 mt-0.5">Quem assume a rodada hoje</p>
-                  </div>
+                <div className="flex items-center gap-0.5 font-sans">
+                  <span className="text-[8px] shrink-0 leading-none">💳</span>
+                  <p className="text-[7.5px] font-black text-gray-800 leading-none truncate max-w-[100px]">{whoPaysPrice}</p>
                 </div>
               )
             });
@@ -329,16 +400,13 @@ Cultivar nossa sintonização e riso mútuo a cada detalhe simples é minha part
           if (selectedEntry.loveMoment) {
             activeCategories.push({
               id: 'loveMoment',
-              title: '💝 Regra Clara do Amor',
-              bgColor: 'bg-blue-50/15',
-              borderColor: 'border-blue-100/50',
+              title: '💝 Regra Clara',
+              bgColor: 'bg-blue-50/10',
+              borderColor: 'border-blue-100/40',
               content: (
-                <div className="flex items-center gap-1 font-sans">
-                  <span className="text-[11px] shrink-0">💖</span>
-                  <div>
-                    <p className="text-[9.5px] font-bold text-rose-500 leading-tight">{loveRule}</p>
-                    <p className="text-[7.5px] font-medium text-gray-400 mt-0.2">Regra ou compromisso para hoje</p>
-                  </div>
+                <div className="flex items-center gap-0.5 font-sans">
+                  <span className="text-[8px] shrink-0 leading-none">💖</span>
+                  <p className="text-[7.5px] font-black text-rose-500 leading-none truncate max-w-[100px]">{loveRule}</p>
                 </div>
               )
             });
@@ -347,11 +415,11 @@ Cultivar nossa sintonização e riso mútuo a cada detalhe simples é minha part
           if (selectedEntry.highlights?.dinner?.description && selectedEntry.highlights.dinner.description.trim() !== '') {
             activeCategories.push({
               id: 'dinnerComment',
-              title: '📝 Notas Gastronômicas',
+              title: '📝 Comentário',
               bgColor: 'bg-gray-50/60',
               borderColor: 'border-gray-150',
               content: (
-                <p className="text-[8px] text-gray-600 italic leading-snug font-sans max-h-12 overflow-hidden">
+                <p className="text-[6.5px] text-gray-600 italic leading-snug font-sans truncate max-w-[110px]">
                   "🍽️ {selectedEntry.highlights.dinner.description}"
                 </p>
               )
@@ -361,11 +429,11 @@ Cultivar nossa sintonização e riso mútuo a cada detalhe simples é minha part
           if (selectedEntry.highlights?.movie?.description && selectedEntry.highlights.movie.description.trim() !== '') {
             activeCategories.push({
               id: 'movieComment',
-              title: '🍿 Notas de Filme/Lazer',
+              title: '🍿 Nota Filme',
               bgColor: 'bg-gray-50/60',
               borderColor: 'border-gray-150',
               content: (
-                <p className="text-[8px] text-gray-600 italic leading-snug font-sans max-h-12 overflow-hidden">
+                <p className="text-[6.5px] text-gray-600 italic leading-snug font-sans truncate max-w-[110px]">
                   "🍿 {selectedEntry.highlights.movie.description}"
                 </p>
               )
@@ -379,59 +447,59 @@ Cultivar nossa sintonização e riso mútuo a cada detalhe simples é minha part
                 position: 'absolute',
                 left: '-9999px',
                 top: '-9999px',
-                width: '794px',
-                height: '1123px',
+                width: '550px',
+                height: '715px',
                 backgroundColor: '#ffffff',
                 boxSizing: 'border-box',
                 overflow: 'hidden'
               }}
-              className="p-6 font-sans relative text-gray-800 border-[10px] border-blue-50/30"
+              className="p-4 font-sans relative text-gray-800 border-[6px] border-blue-50/25"
             >
               {/* Heart decorative watermark in background */}
               <div className="absolute inset-0 flex items-center justify-center opacity-[0.012] pointer-events-none select-none">
-                <Heart className="w-[420px] h-[420px] text-pink-600 fill-pink-600" />
+                <Heart className="w-[300px] h-[300px] text-pink-600 fill-pink-600" />
               </div>
 
-              <div className="relative border border-gray-100 p-5 rounded-2xl w-full h-full flex flex-col justify-between font-sans bg-white shadow-3xs">
+              <div className="relative border border-gray-100 p-4 rounded-xl w-full h-full flex flex-col justify-between font-sans bg-white shadow-3xs">
                 {/* Header section (Modern & Minimalist, with logo and generation date/time) */}
-                <div className="flex justify-between items-center pb-3 border-b border-gray-100/80">
+                <div className="flex justify-between items-center pb-2 border-b border-gray-100/80">
                   {/* Left part: Logo & App Title */}
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-pink-500 border border-pink-100 shadow-2xs">
-                      <Heart className="w-4 h-4 fill-pink-500 text-pink-500" />
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-6 h-6 rounded-full bg-blue-50/80 flex items-center justify-center text-pink-500 border border-pink-50 shadow-3xs">
+                      <Heart className="w-3 h-3 fill-pink-500 text-pink-500" />
                     </div>
                     <div className="text-left font-sans">
-                      <h1 className="text-base font-black tracking-tight text-gray-850">
+                      <h1 className="text-xs font-black tracking-tight text-gray-850 leading-none">
                         ❤️ Diário do Casal
                       </h1>
-                      <p className="text-[8.5px] font-extrabold text-pink-500 uppercase tracking-widest mt-0.5">
+                      <p className="text-[7.5px] font-extrabold text-pink-500 uppercase tracking-widest mt-0.5 leading-none">
                         {profile.partner1} & {profile.partner2}
                       </p>
                     </div>
                   </div>
 
                   {/* Right part: PDF generation timestamp */}
-                  <div className="text-right flex flex-col font-mono text-[7.5px] text-gray-400">
-                    <span className="font-sans font-extrabold text-pink-600 text-[8px] uppercase tracking-wider mb-0.5">Página de Recordação</span>
+                  <div className="text-right flex flex-col font-mono text-[6.5px] text-gray-400 leading-tight">
+                    <span className="font-sans font-extrabold text-pink-700 text-[7px] uppercase tracking-wider mb-0.5">Página de Recordação</span>
                     <span>Documento Oficial: {new Date().toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span>
                     <span>Registro: {selectedEntry.formattedDate} às {selectedEntry.formattedTime}</span>
                   </div>
                 </div>
 
                 {/* Quote of the Day (Very compact) */}
-                <div className="py-1 px-3 text-center text-[9px] text-gray-400 italic font-sans bg-gray-50/40 border border-gray-100/30 rounded-lg max-w-sm mx-auto">
+                <div className="py-1 px-2 text-center text-[7.5px] text-gray-400 italic font-sans bg-gray-50/40 border border-gray-100/30 rounded-md max-w-xs mx-auto my-1 leading-normal">
                   "Cultivar nossa sintonização e riso mútuo a cada detalhe simples é nossa parte favorita de nós."
                 </div>
 
                 {/* Grid with active items (compact cards of selected categories only) */}
-                <div className="grid grid-cols-2 gap-2 flex-grow my-2 items-stretch content-start">
+                <div className="grid grid-cols-2 gap-1.5 flex-grow my-1 items-stretch content-start">
                   {activeCategories.map((cat) => (
                     <div 
                       key={cat.id} 
-                      className={`p-2.5 rounded-[12px] border ${cat.borderColor} ${cat.bgColor} shadow-2xs flex flex-col justify-between font-sans`}
+                      className={`p-2 rounded-[8px] border ${cat.borderColor} ${cat.bgColor} shadow-3xs flex flex-col justify-center font-sans`}
                     >
                       <div>
-                        <span className="text-[7.5px] font-black uppercase text-pink-600 tracking-wider block mb-1 font-sans">
+                        <span className="text-[6.8px] font-black uppercase text-pink-650 tracking-wider block mb-0.5 font-sans leading-none">
                           {cat.title}
                         </span>
                         <div className="font-sans mt-0.5 leading-relaxed">
@@ -443,18 +511,18 @@ Cultivar nossa sintonização e riso mútuo a cada detalhe simples é minha part
                 </div>
 
                 {/* Bottom Row: Gratitudes & Polaroid Photo */}
-                <div className="grid grid-cols-12 gap-2 mt-2 pt-2 border-t border-gray-50/80">
+                <div className="grid grid-cols-12 gap-1.5 mt-1 pt-1.5 border-t border-gray-100/80">
                   {selectedEntry.gratitudes && selectedEntry.gratitudes.length > 0 && (
-                    <div className="col-span-6 p-2.5 bg-white border border-blue-50/85 rounded-[12px] shadow-2xs flex flex-col justify-between">
+                    <div className="col-span-6 p-2 bg-white border border-blue-50/70 rounded-[8px] shadow-3xs flex flex-col justify-between">
                       <div>
-                        <span className="text-[7.5px] font-black uppercase text-pink-500 tracking-wider block mb-1.5 font-sans">
-                          💫 Sou imensamente grato(a) por...
+                        <span className="text-[6.8px] font-black uppercase text-pink-500 tracking-wider block mb-1 font-sans leading-none">
+                          💫 Sou grato(a) por...
                         </span>
-                        <ul className="space-y-1 font-sans">
+                        <ul className="space-y-0.5 font-sans">
                           {selectedEntry.gratitudes.slice(0, 3).map((grat, index) => (
-                            <li key={index} className="flex items-start gap-1 bg-[#fdfaf8]/60 p-1 rounded-lg border border-pink-100/10 font-sans">
-                              <span className="text-pink-500 text-[8px] font-black shrink-0 mt-0.5">❤️</span>
-                              <p className="text-[8px] font-semibold text-gray-700 leading-tight">
+                            <li key={index} className="flex items-start gap-0.5 bg-[#fdfaf8]/60 p-0.5 rounded border border-pink-100/5 font-sans">
+                              <span className="text-pink-500 text-[6.5px] font-black shrink-0 mt-0.2">❤️</span>
+                              <p className="text-[7px] font-semibold text-gray-700 leading-snug">
                                 {grat}
                               </p>
                             </li>
@@ -465,12 +533,12 @@ Cultivar nossa sintonização e riso mútuo a cada detalhe simples é minha part
                   )}
 
                   {selectedEntry.photoUrl && (
-                    <div className="col-span-6 p-2.5 bg-white border border-gray-200/60 rounded-[12px] shadow-2xs flex flex-col justify-between">
+                    <div className="col-span-6 p-2 bg-white border border-gray-200/60 rounded-[8px] shadow-3xs flex flex-col justify-between">
                       <div>
-                        <span className="text-[7.5px] font-black uppercase text-pink-500 tracking-wider block mb-1.5 font-sans">
-                          📸 Registro Fotográfico
+                        <span className="text-[6.8px] font-black uppercase text-pink-500 tracking-wider block mb-1 font-sans leading-none">
+                          📸 Foto do Dia
                         </span>
-                        <div className="w-full h-20 rounded-lg overflow-hidden border border-gray-100 relative mb-1">
+                        <div className="w-full h-12 rounded overflow-hidden border border-gray-100 relative mb-0.5">
                           <img 
                             referrerPolicy="no-referrer"
                             src={selectedEntry.photoUrl} 
@@ -479,7 +547,7 @@ Cultivar nossa sintonização e riso mútuo a cada detalhe simples é minha part
                           />
                         </div>
                         {selectedEntry.photoCaption && (
-                          <p className="text-[7.5px] font-bold text-pink-600 tracking-tight leading-normal font-sans italic text-center truncate max-w-[280px]">
+                          <p className="text-[6.5px] font-bold text-pink-600 tracking-tight leading-normal font-sans italic text-center truncate max-w-[200px]">
                             "{selectedEntry.photoCaption}"
                           </p>
                         )}
@@ -489,16 +557,16 @@ Cultivar nossa sintonização e riso mútuo a cada detalhe simples é minha part
                 </div>
 
                 {/* Footer (Very compact with beautiful quotation) */}
-                <div className="pt-2 border-t border-gray-100 text-center flex flex-col items-center justify-center font-sans">
-                  <p className="text-[8.5px] font-bold text-gray-400 leading-none">
+                <div className="pt-1.5 border-t border-gray-100 text-center flex flex-col items-center justify-center font-sans mt-1">
+                  <p className="text-[7.5px] font-bold text-gray-400 leading-none">
                     "Cada dia ao seu lado é uma memória guardada para sempre no coração."
                   </p>
-                  <div className="flex items-center gap-1 mt-1 font-sans">
-                    <Heart className="w-2 h-2 text-pink-400 fill-pink-400" />
-                    <span className="text-[7.5px] font-extrabold text-gray-500 uppercase tracking-widest font-sans">
+                  <div className="flex items-center gap-1 mt-0.5 font-sans">
+                    <Heart className="w-1.5 h-1.5 text-pink-400 fill-pink-400" />
+                    <span className="text-[6.5px] font-extrabold text-gray-500 uppercase tracking-widest font-sans">
                       {profile.partner1} & {profile.partner2} • Diário do Casal
                     </span>
-                    <Heart className="w-2 h-2 text-pink-400 fill-pink-400" />
+                    <Heart className="w-1.5 h-1.5 text-pink-400 fill-pink-400" />
                   </div>
                 </div>
 
