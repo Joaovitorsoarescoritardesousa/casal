@@ -962,3 +962,17 @@ Cultivar nossa sintonização e riso mútuo a cada detalhe simples é minha part
     </div>
   );
 }
+
+
+// Função opcional para visualizar PDF antes do download
+const previewPDF = (selectedEntry: any) => {
+  if (!selectedEntry) return;
+
+  const pdf = new jsPDF('p', 'mm', 'a4');
+  pdf.text('Diário do Casal', 10, 20);
+
+  const blob = pdf.output('blob');
+  const url = URL.createObjectURL(blob);
+
+  window.open(url, '_blank');
+};
