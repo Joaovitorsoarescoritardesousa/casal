@@ -103,140 +103,62 @@ Cultivar nossa sintonização e riso mútuo a cada detalhe simples é minha part
   };
 
   // Trigger browser print or direct instant high quality client PDF download
-  const handlePrintPDF = async () => {
-    if (!selectedEntry || isGeneratingPdf) return;
+  const handlePrintPDF = () => {
+    if (!selectedEntry) return;
 
-    const element = document.getElementById('diary-detail-pdf-template');
-    if (!element) {
-      window.print();
-      return;
-    }
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    let y = 20;
 
-    setIsGeneratingPdf(true);
+    const addSection = (title: string, items: string[]) => {
+      if (!items || items.length === 0) return;
 
-    try {
-      // Small timeout to let any active hover or transitions finalize
-      await new Promise(resolve => setTimeout(resolve, 300));
+      if (y > 260) {
+        pdf.addPage();
+        y = 20;
+      }
 
-      const canvas = await html2canvas(element, {
-        scale: 2.2, // Excellent presentation quality
-        useCORS: true, // Allow external pictures to render correctly
-        allowTaint: true,
-        logging: false,
-        backgroundColor: '#ffffff', // Matches template background perfectly
-        onclone: (clonedDoc) => {
-          const clonedWindow = clonedDoc.defaultView;
-          if (clonedWindow) {
-            const originalGetComputedStyle = clonedWindow.getComputedStyle;
-            
-            const canvasHelper = clonedDoc.createElement('canvas');
-            canvasHelper.width = 1;
-            canvasHelper.height = 1;
-            const ctxHelper = canvasHelper.getContext('2d');
-            
-            const normalizeColor = (colorStr: string): string => {
-              if (!colorStr || typeof colorStr !== 'string') return colorStr;
-              if (!colorStr.includes('oklch')) return colorStr;
-              
-              try {
-                if (!ctxHelper) return colorStr;
-                ctxHelper.clearRect(0, 0, 1, 1);
-                ctxHelper.fillStyle = colorStr;
-                ctxHelper.fillRect(0, 0, 1, 1);
-                const imgData = ctxHelper.getImageData(0, 0, 1, 1);
-                const r = imgData.data[0];
-                const g = imgData.data[1];
-                const b = imgData.data[2];
-                const a = imgData.data[3] / 255;
-                return `rgba(${r}, ${g}, ${b}, ${a})`;
-              } catch (err) {
-                return colorStr;
-              }
-            };
+      pdf.setFillColor(245, 247, 250);
+      pdf.roundedRect(10, y, 190, 10, 2, 2, 'F');
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(11);
+      pdf.text(title, 14, y + 7);
 
-            clonedWindow.getComputedStyle = function (elt, pseudoElt) {
-              const style = originalGetComputedStyle.call(clonedWindow, elt, pseudoElt);
-              return new Proxy(style, {
-                get(target, prop) {
-                  const value = target[prop as any];
-                  if (typeof value === 'string' && value.includes('oklch')) {
-                    return normalizeColor(value);
-                  }
-                  if (typeof value === 'string' && prop === 'boxShadow' && value.includes('oklch')) {
-                    return value.replace(/oklch\([^)]+\)/g, (match) => normalizeColor(match));
-                  }
-                  if (typeof value === 'function') {
-                    return value.bind(target);
-                  }
-                  return value;
-                }
-              });
-            };
+      y += 16;
 
-            const container = clonedDoc.getElementById('diary-detail-pdf-template');
-            if (container) {
-              const allNodes = container.getElementsByTagName('*');
-              for (let i = 0; i < allNodes.length; i++) {
-                const node = allNodes[i] as any;
-                const tagName = node.tagName?.toLowerCase();
-                
-                // SVG attributes normalization for oklch colors (e.g. fill / stroke)
-                if (tagName === 'path' || tagName === 'svg' || tagName === 'circle' || tagName === 'rect') {
-                  const fillAttr = node.getAttribute('fill');
-                  if (fillAttr && fillAttr.includes('oklch')) {
-                    node.setAttribute('fill', normalizeColor(fillAttr));
-                  }
-                  const strokeAttr = node.getAttribute('stroke');
-                  if (strokeAttr && strokeAttr.includes('oklch')) {
-                    node.setAttribute('stroke', normalizeColor(strokeAttr));
-                  }
-                }
-                
-                // Inline style props normalization
-                if (node.style) {
-                  for (let j = 0; j < node.style.length; j++) {
-                    const propName = node.style[j];
-                    const propValue = node.style.getPropertyValue(propName);
-                    if (propValue && propValue.includes('oklch')) {
-                      node.style.setProperty(propName, normalizeColor(propValue));
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(10);
+
+      items.forEach((item) => {
+        pdf.text(`• ${item}`, 18, y);
+        y += 6;
       });
 
-      const imgData = canvas.toDataURL('image/jpeg', 0.98);
-      
-      // Create a smaller, highly consolidated PDF page form
-      const pdfWidth = 550;
-      const pdfHeight = 715;
+      y += 3;
+    };
 
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'pt',
-        format: [pdfWidth, pdfHeight]
-      });
-      
-      // Forces the captured image to map onto the exact bounds 100% perfectly on a single page
-      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+    pdf.setFontSize(20);
+    pdf.text('Diário do Casal', 10, 15);
 
-      // Safe clean filename based on dates
-      const cleanDate = selectedEntry.formattedDate
-        .toLowerCase()
-        .replace(/[^a-z0-0]/g, '_')
-        .substring(0, 35);
-      
-      pdf.save(`diario_do_casal_${cleanDate}.pdf`);
-    } catch (err) {
-      console.error('Falha ao gerar o PDF direto, usando print nativo:', err);
-      // Absolute premium fallback to native print if anything gets blocked
-      window.print();
-    } finally {
-      setIsGeneratingPdf(false);
+    pdf.setFontSize(10);
+    pdf.text(`${selectedEntry.formattedDate} • ${selectedEntry.formattedTime}`, 10, 22);
+
+    y = 35;
+
+    addSection('Humor', selectedEntry.moods || []);
+    addSection('Ânimo & Energia', [selectedEntry.energy].filter(Boolean));
+    addSection('Quero Comer', selectedEntry.wantToEat || []);
+    addSection('Sobremesa', selectedEntry.dessert || []);
+    addSection('Onde Jantar', [selectedEntry.whereToEat].filter(Boolean));
+    addSection('Exercício do Dia', selectedEntry.exercise || []);
+
+    if (selectedEntry.whereToEat === 'Casa' && selectedEntry.watchInHome) {
+      addSection('O que vamos assistir', [selectedEntry.watchInHome]);
     }
+
+    addSection('Quem paga a conta', [selectedEntry.whoPays].filter(Boolean));
+    addSection('Momento Love', [selectedEntry.loveMoment].filter(Boolean));
+
+    pdf.save(`diario-do-casal-${selectedEntry.formattedDate}.pdf`);
   };
 
   if (selectedEntry) {
